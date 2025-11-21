@@ -5,62 +5,73 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>ATTAMATION - Soil Monitor</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root {
-  --bg: #070617;
-  --card: #0f1220;
-  --accent: #00f1ff;
-  --accent2: #9b4dff;
-  --muted: #9aa3b2;
-  --glow: 0 8px 30px rgba(155, 77, 255, 0.12);
-}
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', Arial, sans-serif; background: radial-gradient(1200px 600px at 10% 10%, rgba(155, 77, 255, 0.06), transparent), linear-gradient(180deg, #060613 0%, #0b0f1a 100%); color: #e6eef8; overflow-x: hidden; }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 18px; }
-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
-header h1 { font-family: 'Orbitron', sans-serif; letter-spacing: 2px; color: var(--accent2); margin: 0; font-size: 28px; }
-header .right { text-align: right; color: var(--muted); font-size: 14px; }
-.connection-status { background: rgba(255,255,255,0.02); padding: 8px 14px; border-radius: 8px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b; }
-.status-dot.online { background: #00ff88; }
-.grid { display: grid; grid-template-columns: 1fr 420px; gap: 18px; }
-.card { background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.007)); border-radius: 14px; padding: 20px; box-shadow: var(--glow); border: 1px solid rgba(255, 255, 255, 0.03); }
-.big-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 360px; }
-.big-stat-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-.big-stat-title { font-size: 16px; color: var(--muted); }
-.big-value { font-family: 'Orbitron', sans-serif; color: var(--accent); font-size: 96px; text-shadow: 0 6px 30px rgba(0, 241, 255, 0.08); line-height: 1; }
-.subtitle { color: var(--muted); margin-top: 8px; }
-.small-row { display: flex; gap: 12px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
-.stat-mini { background: rgba(255, 255, 255, 0.02); padding: 12px; border-radius: 10px; min-width: 120px; text-align: center; }
-.stat-mini h4 { margin: 0; font-size: 16px; color: var(--muted); }
-.stat-mini p { margin: 6px 0 0 0; font-weight: 700; }
-.device-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-.device-card { background: linear-gradient(180deg, #0b0f1a, #0b0f1a); padding: 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.02); }
-.control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px; }
-.control-title { font-weight: 700; color: var(--muted); }
-.mode-toggle { display: flex; gap: 8px; align-items: center; }
-.mode-label { font-size: 12px; color: var(--muted); margin-right: 8px; }
-.mode-select { background: transparent; color: var(--accent); border-radius: 8px; padding: 6px; border: 1px solid rgba(255, 255, 255, 0.03); }
-.device-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-.device-name { font-weight: 600; }
-.device-desc { font-size: 12px; color: var(--muted); }
-.pump-status { text-align: right; }
-.pump-state { color: #ff66a3; font-weight: 700; }
-.pump-state.on { color: #00ff88; }
-.status-label { font-size: 12px; color: var(--muted); }
-.controls { margin-top: 12px; display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
-.setpoint-group { display: flex; flex-direction: column; gap: 4px; }
-.setpoint-label { font-size: 12px; color: var(--muted); }
-.setpoint-input { padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.04); background: transparent; color: var(--accent); width: 90px; font-size: 14px; }
-.btn { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #021; padding: 8px 12px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; font-size: 14px; white-space: nowrap; }
-.btn.secondary { background: transparent; color: var(--muted); border: 1px solid rgba(255, 255, 255, 0.03); }
-.manual-controls { display: none; margin-left: auto; gap: 8px; flex-wrap: wrap; }
-.manual-controls.show { display: flex; }
-.info-text { font-size: 12px; color: var(--muted); text-align: center; padding-top: 10px; }
-.info-text div { margin-top: 6px; }
-@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .big-value { font-size: 72px; } header h1 { font-size: 24px; } }
-@media (max-width: 600px) { .wrap { padding: 12px; } header h1 { font-size: 20px; } .big-value { font-size: 56px; } .big-stat { min-height: auto; padding: 18px 12px; } .card { padding: 16px; } .small-row { flex-direction: column; width: 100%; } .stat-mini { width: 100%; } .controls { flex-direction: column; align-items: stretch; } .setpoint-input { width: 100%; } .btn { width: 100%; } .manual-controls { margin-left: 0; width: 100%; } }
-@media (max-width: 400px) { .big-value { font-size: 48px; } header h1 { font-size: 18px; letter-spacing: 1px; } }
+:root { --bg:#070617; --card:#0f1220; --accent:#00f1ff; --accent2:#9b4dff; --muted:#9aa3b2; --success:#00ff88; --warning:#ffaa00; --danger:#ff6b6b; --glow:0 8px 30px rgba(155,77,255,0.12); }
+* { box-sizing:border-box; }
+html,body { height:100%; margin:0; padding:0; font-family:'Inter',Arial,sans-serif; background:radial-gradient(1200px 600px at 10% 10%,rgba(155,77,255,0.06),transparent),linear-gradient(180deg,#060613 0%,#0b0f1a 100%); color:#e6eef8; overflow-x:hidden; }
+.wrap { max-width:1200px; margin:0 auto; padding:18px; }
+header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px; }
+header h1 { font-family:'Orbitron',sans-serif; letter-spacing:2px; color:var(--accent2); margin:0; font-size:28px; }
+header .right { text-align:right; color:var(--muted); font-size:14px; }
+.tabs { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+.tab { padding:10px 20px; border-radius:10px; cursor:pointer; background:rgba(255,255,255,0.02); color:var(--muted); border:1px solid rgba(255,255,255,0.03); font-weight:600; transition:all 0.3s; }
+.tab.active { background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#021; }
+.tab:hover { background:rgba(255,255,255,0.05); }
+.tab.active:hover { background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+.connection-status { background:rgba(255,255,255,0.02); padding:8px 14px; border-radius:8px; margin-bottom:14px; display:flex; align-items:center; gap:8px; font-size:13px; }
+.status-dot { width:10px; height:10px; border-radius:50%; background:var(--danger); }
+.status-dot.online { background:var(--success); }
+.grid { display:grid; grid-template-columns:1fr 420px; gap:18px; }
+.card { background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.007)); border-radius:14px; padding:20px; box-shadow:var(--glow); border:1px solid rgba(255,255,255,0.03); }
+.big-stat { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; }
+.big-stat-header { width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.big-stat-title { font-size:16px; color:var(--muted); }
+.big-value { font-family:'Orbitron',sans-serif; color:var(--accent); font-size:84px; text-shadow:0 6px 30px rgba(0,241,255,0.08); line-height:1; }
+.subtitle { color:var(--muted); margin-top:8px; }
+.threshold-info { font-size:12px; color:var(--warning); margin-top:8px; padding:6px 12px; background:rgba(255,170,0,0.1); border-radius:6px; }
+.small-row { display:flex; gap:12px; margin-top:18px; justify-content:center; flex-wrap:wrap; }
+.stat-mini { background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; min-width:100px; text-align:center; }
+.stat-mini h4 { margin:0; font-size:14px; color:var(--muted); }
+.stat-mini p { margin:6px 0 0 0; font-weight:700; font-size:15px; }
+.control-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:12px; }
+.control-title { font-weight:700; color:var(--muted); }
+.mode-toggle { display:flex; gap:8px; align-items:center; }
+.mode-label { font-size:12px; color:var(--muted); }
+.mode-select { background:transparent; color:var(--accent); border-radius:8px; padding:6px; border:1px solid rgba(255,255,255,0.03); }
+.device-card { background:linear-gradient(180deg,#0b0f1a,#0b0f1a); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.02); margin-bottom:12px; }
+.device-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.device-name { font-weight:600; }
+.device-desc { font-size:12px; color:var(--muted); }
+.pump-state { color:var(--danger); font-weight:700; font-size:18px; }
+.pump-state.on { color:var(--success); }
+.controls { margin-top:12px; display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
+.control-group { display:flex; flex-direction:column; gap:4px; }
+.control-label { font-size:11px; color:var(--muted); }
+.control-input { padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:var(--accent); width:70px; font-size:14px; text-align:center; }
+.btn { background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#021; padding:8px 14px; border-radius:10px; border:none; font-weight:700; cursor:pointer; font-size:13px; white-space:nowrap; }
+.btn.secondary { background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.03); }
+.btn.danger { background:var(--danger); }
+.manual-controls { display:none; margin-left:auto; gap:8px; }
+.manual-controls.show { display:flex; }
+.info-text { font-size:11px; color:var(--muted); text-align:center; padding-top:8px; line-height:1.6; }
+/* History */
+.history-container { max-height:400px; overflow-y:auto; }
+.history-item { display:flex; justify-content:space-between; align-items:center; padding:12px; background:rgba(255,255,255,0.02); border-radius:8px; margin-bottom:8px; }
+.history-event { font-weight:600; }
+.history-event.on { color:var(--success); }
+.history-event.off { color:var(--danger); }
+.history-time { font-size:12px; color:var(--muted); }
+.history-soil { font-size:12px; color:var(--accent); }
+/* Charts */
+.chart-container { background:rgba(255,255,255,0.02); border-radius:12px; padding:16px; margin-bottom:16px; }
+.chart-title { font-size:14px; color:var(--muted); margin-bottom:12px; font-weight:600; }
+.chart-wrapper { height:200px; }
+/* Responsive */
+@media(max-width:900px) { .grid{grid-template-columns:1fr;} .big-value{font-size:64px;} header h1{font-size:22px;} }
+@media(max-width:600px) { .wrap{padding:12px;} .big-value{font-size:48px;} .big-stat{min-height:auto;padding:16px;} .card{padding:14px;} .small-row{flex-direction:column;width:100%;} .stat-mini{width:100%;} .controls{flex-direction:column;align-items:stretch;} .control-input{width:100%;} .btn{width:100%;} .manual-controls{margin-left:0;width:100%;flex-direction:column;} .tabs{width:100%;} .tab{flex:1;text-align:center;padding:8px 12px;font-size:13px;} }
 </style>
 </head>
 <body>
@@ -78,17 +89,26 @@ header .right { text-align: right; color: var(--muted); font-size: 14px; }
   <span id="statusText">Connecting to MQTT...</span>
 </div>
 
+<div class="tabs">
+  <div class="tab active" data-tab="dashboard">📊 Dashboard</div>
+  <div class="tab" data-tab="history">📜 Pump History</div>
+  <div class="tab" data-tab="trends">📈 Trends</div>
+</div>
+
+<!-- DASHBOARD TAB -->
+<div class="tab-content active" id="tab-dashboard">
 <div class="grid">
   <div class="card big-stat">
     <div class="big-stat-header">
-      <div class="big-stat-title">ROOM SOIL MOISTURE</div>
+      <div class="big-stat-title">SOIL MOISTURE</div>
     </div>
     <div class="big-value" id="soilPercent">--</div>
-    <div class="subtitle">Soil Moisture</div>
+    <div class="subtitle">Current Level</div>
+    <div class="threshold-info" id="thresholdInfo">Pump ON &lt; 35% | OFF ≥ 40%</div>
     <div class="small-row">
-      <div class="stat-mini"><h4>Temperature</h4><p id="tempVal">-- °C</p></div>
-      <div class="stat-mini"><h4>Humidity</h4><p id="humVal">-- %</p></div>
-      <div class="stat-mini"><h4>Soil Raw</h4><p id="soilRaw">--</p></div>
+      <div class="stat-mini"><h4>Temp</h4><p id="tempVal">--°C</p></div>
+      <div class="stat-mini"><h4>Humidity</h4><p id="humVal">--%</p></div>
+      <div class="stat-mini"><h4>Raw</h4><p id="soilRaw">--</p></div>
     </div>
   </div>
 
@@ -96,7 +116,7 @@ header .right { text-align: right; color: var(--muted); font-size: 14px; }
     <div class="control-header">
       <div class="control-title">DEVICE CONTROL</div>
       <div class="mode-toggle">
-        <div class="mode-label">Mode</div>
+        <span class="mode-label">Mode</span>
         <select id="modeSelect" class="mode-select">
           <option value="AUTO">AUTO</option>
           <option value="MANUAL">MANUAL</option>
@@ -104,221 +124,327 @@ header .right { text-align: right; color: var(--muted); font-size: 14px; }
       </div>
     </div>
 
-    <div class="device-grid">
-      <div class="device-card">
-        <div class="device-row">
-          <div>
-            <div class="device-name">Water Pump</div>
-            <div class="device-desc">Pump for irrigation</div>
-          </div>
-          <div class="pump-status">
-            <div class="pump-state" id="pumpState">OFF</div>
-            <div class="status-label">Status</div>
-          </div>
+    <div class="device-card">
+      <div class="device-row">
+        <div>
+          <div class="device-name">💧 Water Pump</div>
+          <div class="device-desc">Irrigation System</div>
         </div>
+        <div style="text-align:right">
+          <div class="pump-state" id="pumpState">OFF</div>
+          <div style="font-size:11px;color:var(--muted)">Status</div>
+        </div>
+      </div>
 
-        <div class="controls">
-          <div class="setpoint-group">
-            <div class="setpoint-label">Setpoint (%)</div>
-            <input id="setpoint" type="number" min="0" max="100" value="40" class="setpoint-input"/>
-          </div>
-          <button class="btn" id="setBtn">SET</button>
-          <div id="manualControls" class="manual-controls">
-            <button class="btn" id="pumpOn">TURN ON</button>
-            <button class="btn secondary" id="pumpOff">TURN OFF</button>
-          </div>
+      <div class="controls">
+        <div class="control-group">
+          <div class="control-label">Setpoint (%)</div>
+          <input id="setpoint" type="number" min="0" max="100" value="40" class="control-input"/>
+        </div>
+        <div class="control-group">
+          <div class="control-label">Hysteresis</div>
+          <input id="hysteresis" type="number" min="1" max="20" value="5" class="control-input"/>
+        </div>
+        <button class="btn" id="setBtn">SET</button>
+        <div id="manualControls" class="manual-controls">
+          <button class="btn" id="pumpOn">ON</button>
+          <button class="btn secondary" id="pumpOff">OFF</button>
         </div>
       </div>
-      <div class="info-text">
-        <div>Auto mode will run pump when soil % &lt; setpoint</div>
-        <div>Manual mode enables direct pump control</div>
-      </div>
+    </div>
+
+    <div class="info-text">
+      <div><b>Hysteresis</b> prevents pump flickering</div>
+      <div>Pump ON when soil &lt; (setpoint - hysteresis)</div>
+      <div>Pump OFF when soil ≥ setpoint</div>
     </div>
   </div>
 </div>
 </div>
 
+<!-- HISTORY TAB -->
+<div class="tab-content" id="tab-history">
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="control-title">📜 PUMP HISTORY</div>
+    <button class="btn secondary" id="clearHistory">Clear</button>
+  </div>
+  <div class="history-container" id="historyContainer">
+    <div style="text-align:center;color:var(--muted);padding:40px">No history yet</div>
+  </div>
+</div>
+</div>
+
+<!-- TRENDS TAB -->
+<div class="tab-content" id="tab-trends">
+<div class="chart-container">
+  <div class="chart-title">🌱 Soil Moisture Trend</div>
+  <div class="chart-wrapper"><canvas id="soilChart"></canvas></div>
+</div>
+<div class="chart-container">
+  <div class="chart-title">🌡️ Temperature Trend</div>
+  <div class="chart-wrapper"><canvas id="tempChart"></canvas></div>
+</div>
+<div class="chart-container">
+  <div class="chart-title">💧 Humidity Trend</div>
+  <div class="chart-wrapper"><canvas id="humChart"></canvas></div>
+</div>
+<div style="text-align:center;margin-top:12px">
+  <button class="btn secondary" id="clearTrends">Clear All Trends</button>
+</div>
+</div>
+</div>
+
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-// State
-let userIsEditingSetpoint = false;
+// ============ STATE ============
+let userEditingSetpoint = false;
+let userEditingHysteresis = false;
 let currentMode = "AUTO";
-let isConnected = false;
+let pumpHistory = JSON.parse(localStorage.getItem('pumpHistory') || '[]');
+let trendData = JSON.parse(localStorage.getItem('trendData') || '{"soil":[],"temp":[],"hum":[],"labels":[]}');
+const MAX_TREND_POINTS = 50;
 
-// Clock
-function pad(n){ return n < 10 ? '0' + n : n; }
+// ============ CLOCK ============
+function pad(n){ return n<10?'0'+n:n; }
 function updateClock(){
-  const d = new Date();
-  document.getElementById('clock').innerText = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-  document.getElementById('date').innerText = d.toLocaleDateString();
+  const d=new Date();
+  document.getElementById('clock').innerText=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  document.getElementById('date').innerText=d.toLocaleDateString();
 }
-setInterval(updateClock, 1000);
+setInterval(updateClock,1000);
 updateClock();
 
-// MQTT Setup
-const mqttHost = "a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
-const mqttUser = "Soil_System";
-const mqttPass = "Soilsystem123";
-const clientId = "webclient_" + Math.random().toString(16).substr(2, 8);
-
-const client = mqtt.connect(`wss://${mqttHost}:8884/mqtt`, {
-  clientId: clientId,
-  username: mqttUser,
-  password: mqttPass,
-  reconnectPeriod: 3000
+// ============ TABS ============
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
 });
 
-function updateConnectionStatus(connected) {
-  isConnected = connected;
-  const dot = document.getElementById('statusDot');
-  const text = document.getElementById('statusText');
-  if (connected) {
-    dot.classList.add('online');
-    text.innerText = 'Connected to MQTT';
-  } else {
-    dot.classList.remove('online');
-    text.innerText = 'Disconnected - Reconnecting...';
-  }
+// ============ CHARTS ============
+const chartOptions = {
+  responsive:true,
+  maintainAspectRatio:false,
+  scales:{
+    x:{display:true,grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#9aa3b2',maxTicksLimit:6}},
+    y:{display:true,grid:{color:'rgba(255,255,255,0.03)'},ticks:{color:'#9aa3b2'}}
+  },
+  plugins:{legend:{display:false}},
+  elements:{point:{radius:2},line:{tension:0.3}}
+};
+
+const soilChart=new Chart(document.getElementById('soilChart'),{
+  type:'line',
+  data:{labels:[],datasets:[{data:[],borderColor:'#00f1ff',backgroundColor:'rgba(0,241,255,0.1)',fill:true}]},
+  options:{...chartOptions,scales:{...chartOptions.scales,y:{...chartOptions.scales.y,min:0,max:100}}}
+});
+
+const tempChart=new Chart(document.getElementById('tempChart'),{
+  type:'line',
+  data:{labels:[],datasets:[{data:[],borderColor:'#ff6b6b',backgroundColor:'rgba(255,107,107,0.1)',fill:true}]},
+  options:chartOptions
+});
+
+const humChart=new Chart(document.getElementById('humChart'),{
+  type:'line',
+  data:{labels:[],datasets:[{data:[],borderColor:'#9b4dff',backgroundColor:'rgba(155,77,255,0.1)',fill:true}]},
+  options:{...chartOptions,scales:{...chartOptions.scales,y:{...chartOptions.scales.y,min:0,max:100}}}
+});
+
+function updateCharts(){
+  soilChart.data.labels=trendData.labels;
+  soilChart.data.datasets[0].data=trendData.soil;
+  soilChart.update('none');
+  tempChart.data.labels=trendData.labels;
+  tempChart.data.datasets[0].data=trendData.temp;
+  tempChart.update('none');
+  humChart.data.labels=trendData.labels;
+  humChart.data.datasets[0].data=trendData.hum;
+  humChart.update('none');
 }
 
-function updateManualControls() {
-  const manualDiv = document.getElementById('manualControls');
-  if (currentMode === "MANUAL") {
-    manualDiv.classList.add('show');
-  } else {
-    manualDiv.classList.remove('show');
+function addTrendPoint(soil,temp,hum){
+  const now=new Date();
+  const label=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  trendData.labels.push(label);
+  trendData.soil.push(soil);
+  trendData.temp.push(temp>-90?temp:null);
+  trendData.hum.push(hum>=0?hum:null);
+  if(trendData.labels.length>MAX_TREND_POINTS){
+    trendData.labels.shift();
+    trendData.soil.shift();
+    trendData.temp.shift();
+    trendData.hum.shift();
   }
+  localStorage.setItem('trendData',JSON.stringify(trendData));
+  updateCharts();
 }
 
-client.on("connect", () => {
-  console.log("Connected to MQTT");
+// ============ HISTORY ============
+function renderHistory(){
+  const container=document.getElementById('historyContainer');
+  if(pumpHistory.length===0){
+    container.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">No history yet</div>';
+    return;
+  }
+  container.innerHTML=pumpHistory.slice().reverse().map(h=>`
+    <div class="history-item">
+      <div>
+        <div class="history-event ${h.event.toLowerCase()}">${h.event==='ON'?'🟢 PUMP ON':'🔴 PUMP OFF'}</div>
+        <div class="history-soil">Soil: ${h.soil}%</div>
+      </div>
+      <div class="history-time">${h.time}</div>
+    </div>
+  `).join('');
+}
+
+function addHistory(event,soil){
+  const now=new Date();
+  const time=now.toLocaleString();
+  pumpHistory.push({event,soil,time});
+  if(pumpHistory.length>100) pumpHistory.shift();
+  localStorage.setItem('pumpHistory',JSON.stringify(pumpHistory));
+  renderHistory();
+}
+
+document.getElementById('clearHistory').addEventListener('click',()=>{
+  if(confirm('Clear all pump history?')){
+    pumpHistory=[];
+    localStorage.removeItem('pumpHistory');
+    renderHistory();
+  }
+});
+
+document.getElementById('clearTrends').addEventListener('click',()=>{
+  if(confirm('Clear all trend data?')){
+    trendData={soil:[],temp:[],hum:[],labels:[]};
+    localStorage.removeItem('trendData');
+    updateCharts();
+  }
+});
+
+// ============ MQTT ============
+const mqttHost="a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
+const mqttUser="Soil_System";
+const mqttPass="Soilsystem123";
+const clientId="web_"+Math.random().toString(16).substr(2,8);
+
+const client=mqtt.connect(`wss://${mqttHost}:8884/mqtt`,{
+  clientId,username:mqttUser,password:mqttPass,reconnectPeriod:3000
+});
+
+function updateConnectionStatus(connected){
+  document.getElementById('statusDot').classList.toggle('online',connected);
+  document.getElementById('statusText').innerText=connected?'Connected to MQTT':'Disconnected - Reconnecting...';
+}
+
+function updateManualControls(){
+  document.getElementById('manualControls').classList.toggle('show',currentMode==="MANUAL");
+}
+
+client.on("connect",()=>{
+  console.log("MQTT Connected");
   updateConnectionStatus(true);
   client.subscribe("soil_system/data");
-  // Request current data from ESP
-  client.publish("soil_system/get_data", "1");
+  client.subscribe("soil_system/pump_event");
+  client.publish("soil_system/get_data","1");
 });
 
-client.on("disconnect", () => {
-  console.log("Disconnected from MQTT");
-  updateConnectionStatus(false);
-});
+client.on("disconnect",()=>updateConnectionStatus(false));
+client.on("error",()=>updateConnectionStatus(false));
 
-client.on("error", (err) => {
-  console.log("MQTT Error:", err);
-  updateConnectionStatus(false);
-});
+let lastPumpState=null;
 
-client.on("message", (topic, message) => {
-  const msg = message.toString();
-  console.log("Received:", topic, msg);
+client.on("message",(topic,message)=>{
+  const msg=message.toString();
   
-  if (topic === "soil_system/data") {
-    try {
-      const data = JSON.parse(msg);
+  if(topic==="soil_system/data"){
+    try{
+      const d=JSON.parse(msg);
+      document.getElementById('soilPercent').innerText=d.soilPercent+' %';
+      document.getElementById('soilRaw').innerText=d.soilRaw;
+      document.getElementById('tempVal').innerText=d.temp>-90?d.temp.toFixed(1)+'°C':'--°C';
+      document.getElementById('humVal').innerText=d.hum>=0?d.hum.toFixed(1)+'%':'--%';
       
-      // Update soil data
-      document.getElementById('soilPercent').innerText = data.soilPercent + ' %';
-      document.getElementById('soilRaw').innerText = data.soilRaw;
+      const pumpEl=document.getElementById('pumpState');
+      const isOn=d.pump===1;
+      pumpEl.innerText=isOn?'ON':'OFF';
+      pumpEl.classList.toggle('on',isOn);
       
-      // Update temperature (handle error value)
-      if (data.temp > -90) {
-        document.getElementById('tempVal').innerText = data.temp.toFixed(1) + ' °C';
-      } else {
-        document.getElementById('tempVal').innerText = '-- °C';
+      // Detect pump state change for history
+      if(lastPumpState!==null && lastPumpState!==isOn){
+        addHistory(isOn?'ON':'OFF',d.soilPercent);
       }
+      lastPumpState=isOn;
       
-      // Update humidity (handle error value)
-      if (data.hum >= 0) {
-        document.getElementById('humVal').innerText = data.hum.toFixed(1) + ' %';
-      } else {
-        document.getElementById('humVal').innerText = '-- %';
-      }
-      
-      // Update pump state
-      const pumpEl = document.getElementById('pumpState');
-      if (data.pump === 1) {
-        pumpEl.innerText = 'ON';
-        pumpEl.classList.add('on');
-      } else {
-        pumpEl.innerText = 'OFF';
-        pumpEl.classList.remove('on');
-      }
-      
-      // Update mode - FIX: data.mode is string "AUTO" or "MANUAL"
-      currentMode = data.mode;
-      document.getElementById('modeSelect').value = data.mode;
+      currentMode=d.mode;
+      document.getElementById('modeSelect').value=d.mode;
       updateManualControls();
       
-      // Update setpoint only if user is NOT editing
-      if (!userIsEditingSetpoint) {
-        document.getElementById('setpoint').value = data.setpoint;
-      }
+      if(!userEditingSetpoint) document.getElementById('setpoint').value=d.setpoint;
+      if(!userEditingHysteresis) document.getElementById('hysteresis').value=d.hysteresis||5;
       
-    } catch (e) {
-      console.error("JSON parse error:", e);
-    }
+      // Update threshold info
+      const low=d.lowThreshold||(d.setpoint-(d.hysteresis||5));
+      document.getElementById('thresholdInfo').innerText=`Pump ON < ${low}% | OFF ≥ ${d.setpoint}%`;
+      
+      // Add trend point
+      addTrendPoint(d.soilPercent,d.temp,d.hum);
+    }catch(e){console.error(e);}
+  }
+  
+  if(topic==="soil_system/pump_event"){
+    try{
+      const d=JSON.parse(msg);
+      addHistory(d.event,d.soil);
+    }catch(e){}
   }
 });
 
-// Setpoint input protection
-const setpointInput = document.getElementById('setpoint');
+// ============ INPUT HANDLERS ============
+const setpointInput=document.getElementById('setpoint');
+const hysteresisInput=document.getElementById('hysteresis');
 
-setpointInput.addEventListener('focus', () => {
-  userIsEditingSetpoint = true;
+setpointInput.addEventListener('focus',()=>userEditingSetpoint=true);
+setpointInput.addEventListener('blur',()=>setTimeout(()=>userEditingSetpoint=false,500));
+setpointInput.addEventListener('input',()=>userEditingSetpoint=true);
+
+hysteresisInput.addEventListener('focus',()=>userEditingHysteresis=true);
+hysteresisInput.addEventListener('blur',()=>setTimeout(()=>userEditingHysteresis=false,500));
+hysteresisInput.addEventListener('input',()=>userEditingHysteresis=true);
+
+document.getElementById('setBtn').addEventListener('click',()=>{
+  let sp=parseInt(setpointInput.value)||40;
+  let hy=parseInt(hysteresisInput.value)||5;
+  sp=Math.max(0,Math.min(100,sp));
+  hy=Math.max(1,Math.min(20,hy));
+  userEditingSetpoint=false;
+  userEditingHysteresis=false;
+  client.publish("soil_system/setpoint",JSON.stringify({setpoint:sp}));
+  client.publish("soil_system/hysteresis",JSON.stringify({hysteresis:hy}));
 });
 
-setpointInput.addEventListener('blur', () => {
-  setTimeout(() => {
-    userIsEditingSetpoint = false;
-  }, 500);
-});
-
-setpointInput.addEventListener('input', () => {
-  userIsEditingSetpoint = true;
-});
-
-// Set button
-document.getElementById('setBtn').addEventListener('click', () => {
-  let sp = parseInt(setpointInput.value);
-  if (isNaN(sp)) sp = 40;
-  if (sp < 0) sp = 0;
-  if (sp > 100) sp = 100;
-  
-  userIsEditingSetpoint = false;
-  setpointInput.value = sp;
-  
-  const payload = JSON.stringify({ setpoint: sp });
-  console.log("Publishing setpoint:", payload);
-  client.publish("soil_system/setpoint", payload);
-});
-
-// Mode select
-document.getElementById('modeSelect').addEventListener('change', function() {
-  const mode = this.value;
-  currentMode = mode;
+document.getElementById('modeSelect').addEventListener('change',function(){
+  currentMode=this.value;
   updateManualControls();
-  
-  const payload = JSON.stringify({ mode: mode });
-  console.log("Publishing mode:", payload);
-  client.publish("soil_system/setmode", payload);
+  client.publish("soil_system/setmode",JSON.stringify({mode:this.value}));
 });
 
-// Manual pump controls
-document.getElementById('pumpOn').addEventListener('click', () => {
-  if (currentMode === "MANUAL") {
-    const payload = JSON.stringify({ state: 1 });
-    console.log("Publishing pump ON:", payload);
-    client.publish("soil_system/manualpump", payload);
-  }
+document.getElementById('pumpOn').addEventListener('click',()=>{
+  if(currentMode==="MANUAL") client.publish("soil_system/manualpump",JSON.stringify({state:1}));
 });
 
-document.getElementById('pumpOff').addEventListener('click', () => {
-  if (currentMode === "MANUAL") {
-    const payload = JSON.stringify({ state: 0 });
-    console.log("Publishing pump OFF:", payload);
-    client.publish("soil_system/manualpump", payload);
-  }
+document.getElementById('pumpOff').addEventListener('click',()=>{
+  if(currentMode==="MANUAL") client.publish("soil_system/manualpump",JSON.stringify({state:0}));
 });
+
+// ============ INIT ============
+renderHistory();
+updateCharts();
 </script>
 </body>
 </html>
