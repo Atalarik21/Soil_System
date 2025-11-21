@@ -59,12 +59,21 @@ header .right { text-align:right; color:var(--muted); font-size:14px; }
 .info-text { font-size:11px; color:var(--muted); text-align:center; padding-top:8px; line-height:1.6; }
 /* History */
 .history-container { max-height:400px; overflow-y:auto; }
-.history-item { display:flex; justify-content:space-between; align-items:center; padding:12px; background:rgba(255,255,255,0.02); border-radius:8px; margin-bottom:8px; }
-.history-event { font-weight:600; }
+.history-item { display:flex; justify-content:space-between; align-items:center; padding:12px; background:rgba(255,255,255,0.02); border-radius:8px; margin-bottom:8px; gap:10px; }
+.history-icon { font-size:20px; min-width:30px; }
+.history-main { flex:1; }
+.history-event { font-weight:600; font-size:14px; }
 .history-event.on { color:var(--success); }
 .history-event.off { color:var(--danger); }
-.history-time { font-size:12px; color:var(--muted); }
-.history-soil { font-size:12px; color:var(--accent); }
+.history-event.auto { color:var(--accent); }
+.history-event.manual { color:var(--accent2); }
+.history-details { font-size:11px; color:var(--muted); margin-top:2px; }
+.history-badge { font-size:10px; padding:2px 6px; border-radius:4px; font-weight:600; }
+.history-badge.auto { background:rgba(0,241,255,0.15); color:var(--accent); }
+.history-badge.manual { background:rgba(155,77,255,0.15); color:var(--accent2); }
+.history-right { text-align:right; }
+.history-time { font-size:11px; color:var(--muted); }
+.history-soil { font-size:12px; color:var(--accent); font-weight:600; }
 /* Charts */
 .chart-container { background:rgba(255,255,255,0.02); border-radius:12px; padding:16px; margin-bottom:16px; }
 .chart-title { font-size:14px; color:var(--muted); margin-bottom:12px; font-weight:600; }
@@ -91,7 +100,7 @@ header .right { text-align:right; color:var(--muted); font-size:14px; }
 
 <div class="tabs">
   <div class="tab active" data-tab="dashboard">📊 Dashboard</div>
-  <div class="tab" data-tab="history">📜 Pump History</div>
+  <div class="tab" data-tab="history">📜 History</div>
   <div class="tab" data-tab="trends">📈 Trends</div>
 </div>
 
@@ -165,9 +174,18 @@ header .right { text-align:right; color:var(--muted); font-size:14px; }
 <!-- HISTORY TAB -->
 <div class="tab-content" id="tab-history">
 <div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-    <div class="control-title">📜 PUMP HISTORY</div>
-    <button class="btn secondary" id="clearHistory">Clear</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div class="control-title">📜 SYSTEM HISTORY</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="historyFilter" class="mode-select" style="font-size:12px">
+        <option value="all">All Events</option>
+        <option value="pump">Pump Only</option>
+        <option value="mode">Mode Only</option>
+        <option value="auto">Auto Trigger</option>
+        <option value="manual">Manual Trigger</option>
+      </select>
+      <button class="btn secondary" id="clearHistory">Clear</button>
+    </div>
   </div>
   <div class="history-container" id="historyContainer">
     <div style="text-align:center;color:var(--muted);padding:40px">No history yet</div>
