@@ -1,0 +1,184 @@
+<!-- tambahkan sebelum </body> atau ganti script fetchData lama -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+/* CONFIG - isi sesuai HiveMQ Cloud Anda */
+const WS_HOST = "a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
+const WS_PORT = 8884; // HiveMQ Cloud WebSocket TLS port (wss)
+const WS_PATH = "/mqtt"; // kadang broker pakai path /mqtt; jika gagal, coba "" atau "/mqtt"
+const MQTT_USER = "Soil_System";
+const MQTT_PASS = "Soilsystem123";
+
+/* topics (sama seperti device) */
+const TOPICS = {
+  temp: "soil/temperature",
+  hum: "soil/humidity",
+  moisture: "soil/moisture",
+  raw: "soil/raw",
+  pumpStatus: "soil/pump/status",
+  modeStatus: "soil/mode/status",
+  setpointStatus: "soil/setpoint/status",
+  pumpSet: "soil/pump/set",
+  modeSet: "soil/mode/set",
+  setpointSet: "soil/setpoint/set",
+  getStatus: "soil/get_status"
+};
+
+let useMQTT = false;
+let mqttClient = null;
+let userIsEditingSetpoint = false;
+let lastServerSetpoint = 40;
+
+// existing UI helpers (clock etc.)
+function pad(n){return n<10?'0'+n:n;}
+function updateClock(){ 
+  var d=new Date(); 
+  document.getElementById('clock').innerText = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); 
+  document.getElementById('date').innerText = d.toLocaleDateString(); 
+}
+setInterval(updateClock,1000); updateClock();
+
+// UI editing handlers (same as before)
+document.getElementById('setpoint').addEventListener('focus', ()=> userIsEditingSetpoint = true);
+document.getElementById('setpoint').addEventListener('blur', ()=> setTimeout(()=> userIsEditingSetpoint=false,300));
+document.getElementById('setpoint').addEventListener('input', ()=> userIsEditingSetpoint = true);
+
+// MQTT connect attempt
+function startMQTT() {
+  try {
+    // build URL: wss://host:port/path
+    let url = `wss://${WS_HOST}:${WS_PORT}${WS_PATH}`;
+    // client id
+    const clientId = 'webui-' + Math.random().toString(16).substr(2, 8);
+    mqttClient = mqtt.connect(url, {
+      clientId,
+      username: MQTT_USER,
+      password: MQTT_PASS,
+      keepalive: 30,
+      reconnectPeriod: 5000,
+      rejectUnauthorized: false // if broker has cert issues; set true for prod
+    });
+
+    mqttClient.on('connect', function () {
+      console.log('MQTT connected via WSS');
+      useMQTT = true;
+      // subscribe to status topics
+      mqttClient.subscribe(Object.values({
+        pumpStatus: TOPICS.pumpStatus,
+        modeStatus: TOPICS.modeStatus,
+        setpointStatus: TOPICS.setpointStatus,
+        temp: TOPICS.temp,
+        hum: TOPICS.hum,
+        moisture: TOPICS.moisture,
+        raw: TOPICS.raw
+      }));
+      // request current status
+      mqttClient.publish(TOPICS.getStatus, "");
+    });
+
+    mqttClient.on('message', function (topic, payload) {
+      const msg = payload.toString();
+      // Update UI according to topic
+      if (topic === TOPICS.pumpStatus) {
+        document.getElementById('pumpState').innerText = msg;
+      } else if (topic === TOPICS.modeStatus) {
+        document.getElementById('modeSelect').value = msg;
+        if (msg === 'MANUAL') document.getElementById('manualControls').style.display = 'flex';
+        else document.getElementById('manualControls').style.display = 'none';
+      } else if (topic === TOPICS.setpointStatus) {
+        if (!userIsEditingSetpoint) { document.getElementById('setpoint').value = msg; lastServerSetpoint = parseInt(msg||0); }
+      } else if (topic === TOPICS.temp) {
+        document.getElementById('tempVal').innerText = (msg==='null' ? '--' : parseFloat(msg).toFixed(1)+' °C');
+      } else if (topic === TOPICS.hum) {
+        document.getElementById('humVal').innerText = (msg==='null' ? '--' : parseFloat(msg).toFixed(1)+' %');
+      } else if (topic === TOPICS.moisture) {
+        document.getElementById('soilPercent').innerText = msg + ' %';
+      } else if (topic === TOPICS.raw) {
+        document.getElementById('soilRaw').innerText = msg;
+      }
+    });
+
+    mqttClient.on('error', function(err){ console.warn('MQTT err', err); });
+    mqttClient.on('close', function(){ console.log('MQTT closed'); useMQTT = false; });
+  } catch (e) {
+    console.warn('MQTT start failed', e);
+    useMQTT = false;
+  }
+}
+
+// fallback polling via local API
+async function fetchLocalData(){
+  try {
+    const res = await fetch('/api/data');
+    if (!res.ok) throw new Error('no local api');
+    const j = await res.json();
+    document.getElementById('soilPercent').innerText = j.soilPercent + ' %';
+    document.getElementById('soilRaw').innerText = j.soilRaw;
+    document.getElementById('tempVal').innerText = (j.temp <= -90 ? '--' : j.temp.toFixed(1)+' °C');
+    document.getElementById('humVal').innerText = (j.hum <= -0.5 ? '--' : j.hum.toFixed(1)+' %');
+    document.getElementById('pumpState').innerText = j.pump;
+    document.getElementById('modeSelect').value = j.mode;
+    if (!userIsEditingSetpoint) { document.getElementById('setpoint').value = j.setpoint; }
+    if (j.mode === 'MANUAL') document.getElementById('manualControls').style.display = 'flex';
+    else document.getElementById('manualControls').style.display = 'none';
+    document.querySelector('.ip-value').innerText = location.hostname;
+    return true;
+  } catch (e) {
+    // local API not available
+    return false;
+  }
+}
+
+// unified fetchData: try MQTT first, otherwise local API
+async function fetchData(){
+  if (useMQTT) {
+    // when using MQTT we don't poll for sensor values, rely on broker updates.
+    // But we can still update IP label
+    document.querySelector('.ip-value').innerText = location.hostname;
+    return;
+  } else {
+    await fetchLocalData();
+  }
+}
+
+// UI actions (mode, setpoint, pump) - will publish via MQTT if available, else call local API
+async function setMode(mode) {
+  if (useMQTT && mqttClient && mqttClient.connected) {
+    mqttClient.publish(TOPICS.modeSet, mode);
+  } else {
+    await fetch('/api/setmode', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({mode:mode})});
+  }
+}
+async function setSetpoint(sp) {
+  if (useMQTT && mqttClient && mqttClient.connected) {
+    mqttClient.publish(TOPICS.setpointSet, String(sp));
+  } else {
+    await fetch('/api/setpoint', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({setpoint:sp})});
+  }
+}
+async function setPump(state) {
+  // state: 1 = ON, 0 = OFF
+  if (useMQTT && mqttClient && mqttClient.connected) {
+    mqttClient.publish(TOPICS.pumpSet, state ? 'ON' : 'OFF');
+  } else {
+    await fetch('/api/pump', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state: state})});
+  }
+}
+
+// wire UI buttons
+document.getElementById('modeSelect').addEventListener('change', async function(){
+  await setMode(this.value);
+});
+document.getElementById('setBtn').addEventListener('click', async function(){
+  const sp = parseInt(document.getElementById('setpoint').value);
+  userIsEditingSetpoint = false;
+  await setSetpoint(sp);
+  setTimeout(fetchData, 500);
+});
+document.getElementById('pumpOn').addEventListener('click', ()=> setPump(1));
+document.getElementById('pumpOff').addEventListener('click', ()=> setPump(0));
+
+// initialization: try MQTT, then start polling fallback
+startMQTT();
+setInterval(fetchData, 1500);
+fetchData();
+</script>
