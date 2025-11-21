@@ -1,184 +1,204 @@
-<!-- tambahkan sebelum </body> atau ganti script fetchData lama -->
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>ATTAMATION - Soil Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+/* --- CSS sama persis dengan program 1 --- */
+:root {
+  --bg: #070617;
+  --card: #0f1220;
+  --accent: #00f1ff;
+  --accent2: #9b4dff;
+  --muted: #9aa3b2;
+  --glow: 0 8px 30px rgba(155, 77, 255, 0.12);
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; padding: 0; font-family: 'Inter', Arial, sans-serif; background: radial-gradient(1200px 600px at 10% 10%, rgba(155, 77, 255, 0.06), transparent), linear-gradient(180deg, #060613 0%, #0b0f1a 100%); color: #e6eef8; overflow-x: hidden; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 18px; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+header h1 { font-family: 'Orbitron', sans-serif; letter-spacing: 2px; color: var(--accent2); margin: 0; font-size: 28px; }
+header .right { text-align: right; color: var(--muted); font-size: 14px; }
+.grid { display: grid; grid-template-columns: 1fr 420px; gap: 18px; }
+.card { background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.007)); border-radius: 14px; padding: 20px; box-shadow: var(--glow); border: 1px solid rgba(255, 255, 255, 0.03); }
+.big-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 360px; }
+.big-stat-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.big-stat-title { font-size: 16px; color: var(--muted); }
+.ip-info { text-align: right; }
+.ip-label { font-size: 12px; color: var(--muted); }
+.ip-value { font-weight: 700; color: var(--accent); }
+.big-value { font-family: 'Orbitron', sans-serif; color: var(--accent); font-size: 96px; text-shadow: 0 6px 30px rgba(0, 241, 255, 0.08); line-height: 1; }
+.subtitle { color: var(--muted); margin-top: 8px; }
+.small-row { display: flex; gap: 12px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
+.stat-mini { background: rgba(255, 255, 255, 0.02); padding: 12px; border-radius: 10px; min-width: 120px; text-align: center; }
+.stat-mini h4 { margin: 0; font-size: 16px; color: var(--muted); }
+.stat-mini p { margin: 6px 0 0 0; font-weight: 700; }
+.device-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.device-card { background: linear-gradient(180deg, #0b0f1a, #0b0f1a); padding: 16px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.02); }
+.control-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px; }
+.control-title { font-weight: 700; color: var(--muted); }
+.mode-toggle { display: flex; gap: 8px; align-items: center; }
+.mode-label { font-size: 12px; color: var(--muted); margin-right: 8px; }
+.mode-select { background: transparent; color: var(--accent); border-radius: 8px; padding: 6px; border: 1px solid rgba(255, 255, 255, 0.03); }
+.device-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.device-name { font-weight: 600; }
+.device-desc { font-size: 12px; color: var(--muted); }
+.pump-status { text-align: right; }
+.pump-state { color: #ff66a3; font-weight: 700; }
+.status-label { font-size: 12px; color: var(--muted); }
+.controls { margin-top: 12px; display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.setpoint-group { display: flex; flex-direction: column; gap: 4px; }
+.setpoint-label { font-size: 12px; color: var(--muted); }
+.setpoint-input { padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.04); background: transparent; color: var(--accent); width: 90px; font-size: 14px; }
+.btn { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #021; padding: 8px 12px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; font-size: 14px; white-space: nowrap; }
+.btn.secondary { background: transparent; color: var(--muted); border: 1px solid rgba(255, 255, 255, 0.03); }
+.manual-controls { display: none; margin-left: auto; gap: 8px; flex-wrap: wrap; }
+.info-text { font-size: 12px; color: var(--muted); text-align: center; padding-top: 10px; }
+.info-text div { margin-top: 6px; }
+/* Responsive */
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } .big-value { font-size: 72px; } header h1 { font-size: 24px; } }
+@media (max-width: 600px) { .wrap { padding: 12px; } header h1 { font-size: 20px; } .big-value { font-size: 56px; } .big-stat { min-height: auto; padding: 18px 12px; } .card { padding: 16px; } .small-row { flex-direction: column; width: 100%; } .stat-mini { width: 100%; } .controls { flex-direction: column; align-items: stretch; } .setpoint-input { width: 100%; } .btn { width: 100%; } .manual-controls { margin-left: 0; width: 100%; } }
+@media (max-width: 400px) { .big-value { font-size: 48px; } header h1 { font-size: 18px; letter-spacing: 1px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>ATTAMATION</h1>
+  <div class="right">
+    <div id="clock">--:--:--</div>
+    <div id="date">--</div>
+  </div>
+</header>
+<div class="grid">
+  <div class="card big-stat">
+    <div class="big-stat-header">
+      <div class="big-stat-title">ROOM SOIL MOISTURE</div>
+      <div class="ip-info">
+        <div class="ip-label">IP:</div>
+        <div class="ip-value" id="espIP">--</div>
+      </div>
+    </div>
+    <div class="big-value" id="soilPercent">--</div>
+    <div class="subtitle" id="soilLabel">Soil Moisture</div>
+    <div class="small-row">
+      <div class="stat-mini"><h4>Temperature</h4><p id="tempVal">-- °C</p></div>
+      <div class="stat-mini"><h4>Humidity</h4><p id="humVal">-- %</p></div>
+      <div class="stat-mini"><h4>Soil Raw</h4><p id="soilRaw">--</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="control-header">
+      <div class="control-title">DEVICE CONTROL</div>
+      <div class="mode-toggle">
+        <div class="mode-label">Mode</div>
+        <select id="modeSelect" class="mode-select">
+          <option value="AUTO">AUTO</option>
+          <option value="MANUAL">MANUAL</option>
+        </select>
+      </div>
+    </div>
+
+```
+<div class="device-grid">
+  <div class="device-card">
+    <div class="device-row">
+      <div>
+        <div class="device-name">Water Pump</div>
+        <div class="device-desc">Pump for irrigation</div>
+      </div>
+      <div class="pump-status">
+        <div class="pump-state" id="pumpState">OFF</div>
+        <div class="status-label">Status</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="setpoint-group">
+        <div class="setpoint-label">Setpoint (%)</div>
+        <input id="setpoint" type="number" min="0" max="100" value="40" class="setpoint-input"/>
+      </div>
+      <button class="btn" id="setBtn">SET</button>
+      <div id="manualControls" class="manual-controls">
+        <button class="btn" id="pumpOn">TURN ON</button>
+        <button class="btn secondary" id="pumpOff">TURN OFF</button>
+      </div>
+    </div>
+  </div>
+  <div class="info-text">
+    <div>Auto mode will run pump when soil % &lt; setpoint</div>
+    <div>Manual mode enables direct pump control</div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-/* CONFIG - isi sesuai HiveMQ Cloud Anda */
-const WS_HOST = "a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
-const WS_PORT = 8884; // HiveMQ Cloud WebSocket TLS port (wss)
-const WS_PATH = "/mqtt"; // kadang broker pakai path /mqtt; jika gagal, coba "" atau "/mqtt"
-const MQTT_USER = "Soil_System";
-const MQTT_PASS = "Soilsystem123";
-
-/* topics (sama seperti device) */
-const TOPICS = {
-  temp: "soil/temperature",
-  hum: "soil/humidity",
-  moisture: "soil/moisture",
-  raw: "soil/raw",
-  pumpStatus: "soil/pump/status",
-  modeStatus: "soil/mode/status",
-  setpointStatus: "soil/setpoint/status",
-  pumpSet: "soil/pump/set",
-  modeSet: "soil/mode/set",
-  setpointSet: "soil/setpoint/set",
-  getStatus: "soil/get_status"
-};
-
-let useMQTT = false;
-let mqttClient = null;
 let userIsEditingSetpoint = false;
 let lastServerSetpoint = 40;
 
-// existing UI helpers (clock etc.)
+// Clock
 function pad(n){return n<10?'0'+n:n;}
-function updateClock(){ 
-  var d=new Date(); 
-  document.getElementById('clock').innerText = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); 
-  document.getElementById('date').innerText = d.toLocaleDateString(); 
+function updateClock(){
+var d=new Date();
+document.getElementById('clock').innerText = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+document.getElementById('date').innerText = d.toLocaleDateString();
 }
 setInterval(updateClock,1000); updateClock();
 
-// UI editing handlers (same as before)
-document.getElementById('setpoint').addEventListener('focus', ()=> userIsEditingSetpoint = true);
-document.getElementById('setpoint').addEventListener('blur', ()=> setTimeout(()=> userIsEditingSetpoint=false,300));
-document.getElementById('setpoint').addEventListener('input', ()=> userIsEditingSetpoint = true);
+// MQTT Setup
+const mqttHost = "a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
+const mqttPort = 8883;
+const mqttUser = "Soil_System";
+const mqttPass = "Soilsystem123";
+const clientId = "webclient_" + Math.random().toString(16).substr(2, 8);
 
-// MQTT connect attempt
-function startMQTT() {
-  try {
-    // build URL: wss://host:port/path
-    let url = `wss://${WS_HOST}:${WS_PORT}${WS_PATH}`;
-    // client id
-    const clientId = 'webui-' + Math.random().toString(16).substr(2, 8);
-    mqttClient = mqtt.connect(url, {
-      clientId,
-      username: MQTT_USER,
-      password: MQTT_PASS,
-      keepalive: 30,
-      reconnectPeriod: 5000,
-      rejectUnauthorized: false // if broker has cert issues; set true for prod
-    });
+const client = mqtt.connect(`wss://${mqttHost}:8884/mqtt`, { clientId, username: mqttUser, password: mqttPass });
 
-    mqttClient.on('connect', function () {
-      console.log('MQTT connected via WSS');
-      useMQTT = true;
-      // subscribe to status topics
-      mqttClient.subscribe(Object.values({
-        pumpStatus: TOPICS.pumpStatus,
-        modeStatus: TOPICS.modeStatus,
-        setpointStatus: TOPICS.setpointStatus,
-        temp: TOPICS.temp,
-        hum: TOPICS.hum,
-        moisture: TOPICS.moisture,
-        raw: TOPICS.raw
-      }));
-      // request current status
-      mqttClient.publish(TOPICS.getStatus, "");
-    });
-
-    mqttClient.on('message', function (topic, payload) {
-      const msg = payload.toString();
-      // Update UI according to topic
-      if (topic === TOPICS.pumpStatus) {
-        document.getElementById('pumpState').innerText = msg;
-      } else if (topic === TOPICS.modeStatus) {
-        document.getElementById('modeSelect').value = msg;
-        if (msg === 'MANUAL') document.getElementById('manualControls').style.display = 'flex';
-        else document.getElementById('manualControls').style.display = 'none';
-      } else if (topic === TOPICS.setpointStatus) {
-        if (!userIsEditingSetpoint) { document.getElementById('setpoint').value = msg; lastServerSetpoint = parseInt(msg||0); }
-      } else if (topic === TOPICS.temp) {
-        document.getElementById('tempVal').innerText = (msg==='null' ? '--' : parseFloat(msg).toFixed(1)+' °C');
-      } else if (topic === TOPICS.hum) {
-        document.getElementById('humVal').innerText = (msg==='null' ? '--' : parseFloat(msg).toFixed(1)+' %');
-      } else if (topic === TOPICS.moisture) {
-        document.getElementById('soilPercent').innerText = msg + ' %';
-      } else if (topic === TOPICS.raw) {
-        document.getElementById('soilRaw').innerText = msg;
-      }
-    });
-
-    mqttClient.on('error', function(err){ console.warn('MQTT err', err); });
-    mqttClient.on('close', function(){ console.log('MQTT closed'); useMQTT = false; });
-  } catch (e) {
-    console.warn('MQTT start failed', e);
-    useMQTT = false;
-  }
-}
-
-// fallback polling via local API
-async function fetchLocalData(){
-  try {
-    const res = await fetch('/api/data');
-    if (!res.ok) throw new Error('no local api');
-    const j = await res.json();
-    document.getElementById('soilPercent').innerText = j.soilPercent + ' %';
-    document.getElementById('soilRaw').innerText = j.soilRaw;
-    document.getElementById('tempVal').innerText = (j.temp <= -90 ? '--' : j.temp.toFixed(1)+' °C');
-    document.getElementById('humVal').innerText = (j.hum <= -0.5 ? '--' : j.hum.toFixed(1)+' %');
-    document.getElementById('pumpState').innerText = j.pump;
-    document.getElementById('modeSelect').value = j.mode;
-    if (!userIsEditingSetpoint) { document.getElementById('setpoint').value = j.setpoint; }
-    if (j.mode === 'MANUAL') document.getElementById('manualControls').style.display = 'flex';
-    else document.getElementById('manualControls').style.display = 'none';
-    document.querySelector('.ip-value').innerText = location.hostname;
-    return true;
-  } catch (e) {
-    // local API not available
-    return false;
-  }
-}
-
-// unified fetchData: try MQTT first, otherwise local API
-async function fetchData(){
-  if (useMQTT) {
-    // when using MQTT we don't poll for sensor values, rely on broker updates.
-    // But we can still update IP label
-    document.querySelector('.ip-value').innerText = location.hostname;
-    return;
-  } else {
-    await fetchLocalData();
-  }
-}
-
-// UI actions (mode, setpoint, pump) - will publish via MQTT if available, else call local API
-async function setMode(mode) {
-  if (useMQTT && mqttClient && mqttClient.connected) {
-    mqttClient.publish(TOPICS.modeSet, mode);
-  } else {
-    await fetch('/api/setmode', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({mode:mode})});
-  }
-}
-async function setSetpoint(sp) {
-  if (useMQTT && mqttClient && mqttClient.connected) {
-    mqttClient.publish(TOPICS.setpointSet, String(sp));
-  } else {
-    await fetch('/api/setpoint', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({setpoint:sp})});
-  }
-}
-async function setPump(state) {
-  // state: 1 = ON, 0 = OFF
-  if (useMQTT && mqttClient && mqttClient.connected) {
-    mqttClient.publish(TOPICS.pumpSet, state ? 'ON' : 'OFF');
-  } else {
-    await fetch('/api/pump', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({state: state})});
-  }
-}
-
-// wire UI buttons
-document.getElementById('modeSelect').addEventListener('change', async function(){
-  await setMode(this.value);
+client.on("connect", () => {
+console.log("Connected to MQTT");
+client.subscribe("soil_system/data");
+client.subscribe("soil_system/ack");
+client.publish("soil_system/get_data", "1");
 });
-document.getElementById('setBtn').addEventListener('click', async function(){
-  const sp = parseInt(document.getElementById('setpoint').value);
-  userIsEditingSetpoint = false;
-  await setSetpoint(sp);
-  setTimeout(fetchData, 500);
-});
-document.getElementById('pumpOn').addEventListener('click', ()=> setPump(1));
-document.getElementById('pumpOff').addEventListener('click', ()=> setPump(0));
 
-// initialization: try MQTT, then start polling fallback
-startMQTT();
-setInterval(fetchData, 1500);
-fetchData();
-</script>
+client.on("message", (topic, message) => {
+let msg = message.toString();
+if(topic=="soil_system/data"){
+let data = JSON.parse(msg);
+document.getElementById('soilPercent').innerText = data.soilPercent + ' %';
+document.getElementById('soilRaw').innerText = data.soilRaw;
+document.getElementById('tempVal').innerText = data.temp.toFixed(1)+' °C';
+document.getElementById('humVal').innerText = data.hum.toFixed(1)+' %';
+document.getElementById('pumpState').innerText = data.pump ? "ON":"OFF";
+document.getElementById('modeSelect').value = data.mode ? "AUTO":"MANUAL";
+document.getElementById('setpoint').value = data.setpoint;
+}
+});
+
+// User interactions
+document.getElementById('setpoint').addEventListener('focus',()=>{userIsEditingSetpoint=true;});
+document.getElementById('setpoint').addEventListener('blur',()=>{setTimeout(()=>{userIsEditingSetpoint=false;},300);});
+document.getElementById('setpoint').addEventListener('input',()=>{userIsEditingSetpoint=true;});
+
+document.getElementById('setBtn').addEventListener('click',()=> {
+let sp = parseInt(document.getElementById('setpoint').value);
+client.publish("soil_system/setpoint", JSON.stringify({setpoint: sp}));
+});
+
+document.getElementById('modeSelect').addEventListener('change',()=> {
+let mode = document.getElementById('modeSelect').value;
+client.publish("soil_system/setmode", JSON.stringify({mode}));
+});
+
+document.getElementById('pumpOn').addEventListener('click',()=>{ client.publish("soil_system/manualpump", JSON.stringify({state:1})); });
+document.getElementById('pumpOff').addEventListener('click',()=>{ client.publish("soil_system/manualpump", JSON.stringify({state:0})); }); </script>
+
+</body>
+</html>
