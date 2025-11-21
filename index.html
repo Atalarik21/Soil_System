@@ -78,9 +78,6 @@ header .right { text-align:right; color:var(--muted); font-size:14px; }
 .chart-container { background:rgba(255,255,255,0.02); border-radius:12px; padding:16px; margin-bottom:16px; }
 .chart-title { font-size:14px; color:var(--muted); margin-bottom:12px; font-weight:600; }
 .chart-wrapper { height:200px; }
-.date-controls { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-.date-select { background:transparent; color:var(--accent); border-radius:8px; padding:6px; border:1px solid rgba(255,255,255,0.03); }
-.range-slider { width:100%; }
 /* Responsive */
 @media(max-width:900px) { .grid{grid-template-columns:1fr;} .big-value{font-size:64px;} header h1{font-size:22px;} }
 @media(max-width:600px) { .wrap{padding:12px;} .big-value{font-size:48px;} .big-stat{min-height:auto;padding:16px;} .card{padding:14px;} .small-row{flex-direction:column;width:100%;} .stat-mini{width:100%;} .controls{flex-direction:column;align-items:stretch;} .control-input{width:100%;} .btn{width:100%;} .manual-controls{margin-left:0;width:100%;flex-direction:column;} .tabs{width:100%;} .tab{flex:1;text-align:center;padding:8px 12px;font-size:13px;} }
@@ -187,7 +184,6 @@ header .right { text-align:right; color:var(--muted); font-size:14px; }
         <option value="auto">Auto Trigger</option>
         <option value="manual">Manual Trigger</option>
       </select>
-      <select id="historyDate" class="date-select" title="Select date to view history"></select>
       <button class="btn secondary" id="clearHistory">Clear</button>
     </div>
   </div>
@@ -200,17 +196,7 @@ header .right { text-align:right; color:var(--muted); font-size:14px; }
 <!-- TRENDS TAB -->
 <div class="tab-content" id="tab-trends">
 <div class="chart-container">
-  <div class="date-controls">
-    <div class="chart-title">🌱 Soil Moisture Trend</div>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-      <label style="font-size:12px;color:var(--muted)">Date:</label>
-      <select id="trendDate" class="date-select" title="Select date to view trend"></select>
-      <label style="font-size:12px;color:var(--muted)">Window:</label>
-      <input id="trendWindow" type="range" min="10" max="1000" value="120" class="range-slider" title="Window size (points)" style="width:180px;">
-      <label style="font-size:12px;color:var(--muted)">Shift:</label>
-      <input id="trendShift" type="range" min="0" max="0" value="0" class="range-slider" title="Shift" style="width:160px;">
-    </div>
-  </div>
+  <div class="chart-title">🌱 Soil Moisture Trend</div>
   <div class="chart-wrapper"><canvas id="soilChart"></canvas></div>
 </div>
 <div class="chart-container">
@@ -229,330 +215,35 @@ header .right { text-align:right; color:var(--muted); font-size:14px; }
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-/* ========================
-   CONFIG
-   ======================== */
-const SAMPLE_INTERVAL_SECONDS = 3;      // per request
-const RETAIN_DAYS = 14;                // keep last 14 days
-const DB_NAME = 'attamation_soil_v1';
-const DB_VERSION = 1;
+// ============ STATE ============
+let userEditingSetpoint = false;
+let userEditingHysteresis = false;
+let currentMode = "AUTO";
+let eventHistory = JSON.parse(localStorage.getItem('eventHistory') || '[]');
+let trendData = JSON.parse(localStorage.getItem('trendData') || '{"soil":[],"temp":[],"hum":[],"labels":[]}');
+const MAX_TREND_POINTS = 50;
 
-/* ========================
-   IndexedDB helpers
-   - store 'trends' keyed by date 'YYYY-MM-DD' -> value {labels:[], soil:[], temp:[], hum:[]}
-   - store 'history' keyed by date -> array of events
-   - store 'meta' for list of dates (optional)
-   ======================== */
-
-function openDB(){
-  return new Promise((resolve, reject)=>{
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = (e)=>{
-      const db = e.target.result;
-      if(!db.objectStoreNames.contains('trends')) db.createObjectStore('trends');
-      if(!db.objectStoreNames.contains('history')) db.createObjectStore('history');
-    };
-    req.onsuccess = ()=> resolve(req.result);
-    req.onerror = ()=> reject(req.error);
-  });
-}
-
-async function idbGet(storeName, key){
-  const db = await openDB();
-  return new Promise((res,rej)=>{
-    const tx = db.transaction(storeName,'readonly');
-    const st = tx.objectStore(storeName);
-    const r = st.get(key);
-    r.onsuccess = ()=> res(r.result);
-    r.onerror = ()=> rej(r.error);
-  });
-}
-
-async function idbPut(storeName, key, val){
-  const db = await openDB();
-  return new Promise((res,rej)=>{
-    const tx = db.transaction(storeName,'readwrite');
-    const st = tx.objectStore(storeName);
-    const r = st.put(val,key);
-    r.onsuccess = ()=> res(r.result);
-    r.onerror = ()=> rej(r.error);
-  });
-}
-
-async function idbDelete(storeName, key){
-  const db = await openDB();
-  return new Promise((res,rej)=>{
-    const tx = db.transaction(storeName,'readwrite');
-    const st = tx.objectStore(storeName);
-    const r = st.delete(key);
-    r.onsuccess = ()=> res();
-    r.onerror = ()=> rej(r.error);
-  });
-}
-
-async function idbListKeys(storeName){
-  const db = await openDB();
-  return new Promise((res,rej)=>{
-    const tx = db.transaction(storeName,'readonly');
-    const st = tx.objectStore(storeName);
-    const req = st.getAllKeys();
-    req.onsuccess = ()=> res(req.result);
-    req.onerror = ()=> rej(req.error);
-  });
-}
-
-/* ========================
-   Utilities
-   ======================== */
-function toDateKey(d){ // d = Date or timestamp
-  const dt = (d instanceof Date) ? d : new Date(d);
-  const y = dt.getFullYear();
-  const m = String(dt.getMonth()+1).padStart(2,'0');
-  const dd = String(dt.getDate()).padStart(2,'0');
-  return `${y}-${m}-${dd}`;
-}
+// ============ CLOCK ============
 function pad(n){ return n<10?'0'+n:n; }
-
-/* ========================
-   Data managers (trend & history)
-   ======================== */
-
-const trendManager = {
-  // append point {ts: timestamp ms, soil, temp, hum}. Save to store for that date
-  async addPoint(point){
-    // point: {ts, soil, temp, hum}
-    const dateKey = toDateKey(point.ts);
-    const day = (await idbGet('trends', dateKey)) || {labels:[], soil:[], temp:[], hum:[]};
-    // label as HH:MM:SS
-    const dt = new Date(point.ts);
-    const label = pad(dt.getHours())+':'+pad(dt.getMinutes())+':'+pad(dt.getSeconds());
-    day.labels.push(label);
-    day.soil.push(typeof point.soil==='number' ? Number(point.soil) : null);
-    day.temp.push(typeof point.temp==='number' ? Number(point.temp) : null);
-    day.hum.push(typeof point.hum==='number' ? Number(point.hum) : null);
-    // basic safety: if day grows extremely big, allow it (IndexedDB), but we will prune older days separately
-    await idbPut('trends', dateKey, day);
-    await pruneOldDays(); // keep retention
-  },
-
-  // get data object for date: {labels, soil, temp, hum}
-  async getDataForDate(dateKey){
-    return (await idbGet('trends', dateKey)) || {labels:[], soil:[], temp:[], hum:[]};
-  },
-
-  // list available dates sorted ascending
-  async listDates(){
-    const keys = await idbListKeys('trends');
-    keys.sort();
-    return keys;
-  },
-
-  // delete all trend data
-  async clearAll(){
-    const keys = await idbListKeys('trends');
-    await Promise.all(keys.map(k=>idbDelete('trends', k)));
-  },
-
-  // estimate points for date (fast)
-  async estimatePointsForDate(dateKey){
-    const d = await idbGet('trends', dateKey);
-    return d ? d.labels.length : 0;
-  }
-};
-
-const historyManager = {
-  async addEvent(event){
-    // event: {ts, type, action, trigger, soil}
-    const dateKey = toDateKey(event.ts);
-    const arr = (await idbGet('history', dateKey)) || [];
-    arr.push(event);
-    // cap events per day to some reasonable amount (e.g., 10000). We'll keep large enough.
-    if(arr.length > 200000) arr.shift();
-    await idbPut('history', dateKey, arr);
-    await pruneOldDays();
-  },
-
-  async getEventsForDate(dateKey){
-    return (await idbGet('history', dateKey)) || [];
-  },
-
-  async listDates(){
-    return (await idbListKeys('history')).sort();
-  },
-
-  async clearAll(){
-    const keys = await idbListKeys('history');
-    await Promise.all(keys.map(k=>idbDelete('history', k)));
-  }
-};
-
-/* ========================
-   Retention: prune days older than RETAIN_DAYS
-   ======================== */
-async function pruneOldDays(){
-  try{
-    const now = new Date();
-    const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (RETAIN_DAYS-1)); // keep today + 13 prev => 14
-    const cutoffKey = toDateKey(cutoff);
-    // trends
-    const trendKeys = await idbListKeys('trends');
-    await Promise.all(trendKeys.map(async k=>{
-      if(k < cutoffKey){
-        // delete older day
-        await idbDelete('trends', k);
-      }
-    }));
-    // history
-    const histKeys = await idbListKeys('history');
-    await Promise.all(histKeys.map(async k=>{
-      if(k < cutoffKey){
-        await idbDelete('history', k);
-      }
-    }));
-    // done
-  }catch(e){ console.warn('Prune error', e); }
+function updateClock(){
+  const d=new Date();
+  document.getElementById('clock').innerText=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  document.getElementById('date').innerText=d.toLocaleDateString();
 }
+setInterval(updateClock,1000);
+updateClock();
 
-/* ========================
-   UI: date selectors, renderers
-   ======================== */
-
-function el(id){ return document.getElementById(id); }
-
-async function populateDateSelectors(){
-  // union of trend dates and history dates
-  const tdates = await trendManager.listDates();
-  const hdates = await historyManager.listDates();
-  const set = new Set([...tdates, ...hdates]);
-  const dates = Array.from(set).sort();
-  const trendSel = el('trendDate');
-  const histSel = el('historyDate');
-  trendSel.innerHTML = '';
-  histSel.innerHTML = '';
-  if(dates.length === 0){
-    trendSel.innerHTML = '<option value=\"\">(no data)</option>';
-    histSel.innerHTML = '<option value=\"\">(no data)</option>';
-    return;
-  }
-  dates.forEach(d=>{
-    const o1 = document.createElement('option'); o1.value = d; o1.textContent = d; trendSel.appendChild(o1);
-    const o2 = document.createElement('option'); o2.value = d; o2.textContent = d; histSel.appendChild(o2);
+// ============ TABS ============
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
   });
-  trendSel.value = dates[dates.length-1];
-  histSel.value = dates[dates.length-1];
-  // update sliders' limits
-  await updateTrendSliders();
-  // render initial
-  renderHistory();
-  renderTrends();
-}
+});
 
-// Render History for selected date and filter
-async function renderHistory(){
-  const container = el('historyContainer');
-  const dateKey = el('historyDate').value;
-  if(!dateKey){ container.innerHTML = '<div style=\"text-align:center;color:var(--muted);padding:40px\">No history yet</div>'; return; }
-  let events = await historyManager.getEventsForDate(dateKey);
-  const filter = el('historyFilter').value;
-  if(filter === 'pump') events = events.filter(e=>e.type==='pump');
-  else if(filter === 'mode') events = events.filter(e=>e.type==='mode');
-  else if(filter === 'auto') events = events.filter(e=>e.trigger==='auto');
-  else if(filter === 'manual') events = events.filter(e=>e.trigger==='manual');
-  if(events.length === 0){
-    container.innerHTML = '<div style=\"text-align:center;color:var(--muted);padding:40px\">No history on this date</div>';
-    return;
-  }
-  // reverse chronological
-  events = events.slice().reverse();
-  container.innerHTML = events.map(h=>{
-    const icon = (h.type === 'pump') ? (h.action==='ON' ? '💧' : '🚫') : (h.type === 'mode' ? (h.action==='AUTO' ? '🤖' : '🖐️') : '📝');
-    const eventClass = (h.action || '').toLowerCase();
-    const badgeClass = h.trigger === 'manual' ? 'manual' : 'auto';
-    const badgeText = h.trigger === 'manual' ? 'MANUAL' : 'AUTO';
-    const soilText = (h.type==='pump' && typeof h.soil==='number') ? ` • Soil: ${h.soil}%` : '';
-    const time = new Date(h.ts).toLocaleTimeString();
-    let text = '';
-    if(h.type === 'pump') text = h.action + ' ' + (h.trigger === 'manual' ? '(Manual)' : '(Auto)');
-    else if(h.type === 'mode') text = `Mode → ${h.action}`;
-    else text = h.action || 'Event';
-    return `
-      <div class="history-item">
-        <div class="history-icon">${icon}</div>
-        <div class="history-main">
-          <div class="history-event ${eventClass}">${text}</div>
-          <div class="history-details">
-            <span class="history-badge ${badgeClass}">${badgeText}</span>${soilText}
-          </div>
-        </div>
-        <div class="history-right">
-          <div class="history-time">${time}</div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// Update the shift/window slider limits based on selected trend date
-async function updateTrendSliders(){
-  const dateKey = el('trendDate').value;
-  if(!dateKey) return;
-  const points = await trendManager.estimatePointsForDate(dateKey);
-  const wEl = el('trendWindow');
-  const sEl = el('trendShift');
-  // set reasonable bounds
-  const maxWindow = Math.max(10, points);
-  wEl.max = Math.max(10, Math.min(20000, maxWindow));
-  // default window value: show last N points depending on points (prefer last 120)
-  if(!wEl.dataset.userChanged) wEl.value = Math.min(500, Math.max(20, Math.floor(points/10) || 120));
-  sEl.max = Math.max(0, points - 10);
-  if(sEl.value > sEl.max) sEl.value = sEl.max;
-}
-
-// Render trend charts using selected date, window, shift
-async function renderTrends(){
-  const dateKey = el('trendDate').value;
-  if(!dateKey){
-    // clear charts
-    soilChart.data.labels=[]; soilChart.data.datasets[0].data=[]; soilChart.update();
-    tempChart.data.labels=[]; tempChart.data.datasets[0].data=[]; tempChart.update();
-    humChart.data.labels=[]; humChart.data.datasets[0].data=[]; humChart.update();
-    return;
-  }
-  const windowPoints = parseInt(el('trendWindow').value,10);
-  const shift = parseInt(el('trendShift').value,10) || 0;
-  const data = await trendManager.getDataForDate(dateKey);
-  const total = data.labels.length;
-  if(total === 0){
-    soilChart.data.labels=[]; soilChart.data.datasets[0].data=[]; soilChart.update();
-    tempChart.data.labels=[]; tempChart.data.datasets[0].data=[]; tempChart.update();
-    humChart.data.labels=[]; humChart.data.datasets[0].data=[]; humChart.update();
-    return;
-  }
-  const w = Math.min(windowPoints, total);
-  const maxShift = Math.max(0, total - w);
-  let sh = Math.min(shift, maxShift);
-  const start = Math.max(0, total - w - sh);
-  const end = total - sh;
-  const labels = data.labels.slice(start, end);
-  soilChart.data.labels = labels;
-  soilChart.data.datasets[0].data = data.soil.slice(start, end);
-  soilChart.update('none');
-
-  tempChart.data.labels = labels;
-  tempChart.data.datasets[0].data = data.temp.slice(start, end);
-  tempChart.update('none');
-
-  humChart.data.labels = labels;
-  humChart.data.datasets[0].data = data.hum.slice(start, end);
-  humChart.update('none');
-
-  // update shift slider max to reflect changes
-  el('trendShift').max = Math.max(0, total - 10);
-}
-
-/* ========================
-   Prepare Chart.js charts
-   ======================== */
+// ============ CHARTS ============
 const chartOptions = {
   responsive:true,
   maintainAspectRatio:false,
@@ -582,9 +273,124 @@ const humChart=new Chart(document.getElementById('humChart'),{
   options:{...chartOptions,scales:{...chartOptions.scales,y:{...chartOptions.scales.y,min:0,max:100}}}
 });
 
-/* ========================
-   MQTT integration (kept as your original)
-   ======================== */
+function updateCharts(){
+  soilChart.data.labels=trendData.labels;
+  soilChart.data.datasets[0].data=trendData.soil;
+  soilChart.update('none');
+  tempChart.data.labels=trendData.labels;
+  tempChart.data.datasets[0].data=trendData.temp;
+  tempChart.update('none');
+  humChart.data.labels=trendData.labels;
+  humChart.data.datasets[0].data=trendData.hum;
+  humChart.update('none');
+}
+
+function addTrendPoint(soil,temp,hum){
+  const now=new Date();
+  const label=pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+  trendData.labels.push(label);
+  trendData.soil.push(soil);
+  trendData.temp.push(temp>-90?temp:null);
+  trendData.hum.push(hum>=0?hum:null);
+  if(trendData.labels.length>MAX_TREND_POINTS){
+    trendData.labels.shift();
+    trendData.soil.shift();
+    trendData.temp.shift();
+    trendData.hum.shift();
+  }
+  localStorage.setItem('trendData',JSON.stringify(trendData));
+  updateCharts();
+}
+
+// ============ HISTORY ============
+function getHistoryIcon(type, action) {
+  if(type === 'pump') return action === 'ON' ? '💧' : '🚫';
+  if(type === 'mode') return action === 'AUTO' ? '🤖' : '🖐️';
+  return '📝';
+}
+
+function getHistoryText(type, action, trigger) {
+  if(type === 'pump') {
+    const triggerText = trigger === 'auto' ? '(Auto)' : '(Manual)';
+    return action === 'ON' ? `Pump ON ${triggerText}` : `Pump OFF ${triggerText}`;
+  }
+  if(type === 'mode') {
+    return action === 'AUTO' ? 'Mode → AUTO' : 'Mode → MANUAL';
+  }
+  return action;
+}
+
+function renderHistory(){
+  const container = document.getElementById('historyContainer');
+  const filter = document.getElementById('historyFilter').value;
+  
+  let filtered = eventHistory;
+  if(filter === 'pump') filtered = eventHistory.filter(h => h.type === 'pump');
+  else if(filter === 'mode') filtered = eventHistory.filter(h => h.type === 'mode');
+  else if(filter === 'auto') filtered = eventHistory.filter(h => h.trigger === 'auto');
+  else if(filter === 'manual') filtered = eventHistory.filter(h => h.trigger === 'manual');
+  
+  if(filtered.length === 0){
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">No history yet</div>';
+    return;
+  }
+  
+  container.innerHTML = filtered.slice().reverse().map(h => {
+    const icon = getHistoryIcon(h.type, h.action);
+    const text = getHistoryText(h.type, h.action, h.trigger);
+    const eventClass = h.action.toLowerCase();
+    const badgeClass = h.trigger || 'auto';
+    const badgeText = h.trigger === 'manual' ? 'MANUAL' : 'AUTO';
+    
+    return `
+      <div class="history-item">
+        <div class="history-icon">${icon}</div>
+        <div class="history-main">
+          <div class="history-event ${eventClass}">${text}</div>
+          <div class="history-details">
+            <span class="history-badge ${badgeClass}">${badgeText}</span>
+            ${h.type === 'pump' ? ` • Soil: ${h.soil}%` : ''}
+          </div>
+        </div>
+        <div class="history-right">
+          <div class="history-time">${h.time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addEvent(type, action, trigger, soil){
+  console.log(">>> addEvent called:", type, action, trigger, soil);
+  const now = new Date();
+  const time = now.toLocaleString();
+  const newEvent = { type, action, trigger, soil, time };
+  eventHistory.push(newEvent);
+  console.log(">>> Event added to history. Total events:", eventHistory.length);
+  if(eventHistory.length > 100) eventHistory.shift();
+  localStorage.setItem('eventHistory', JSON.stringify(eventHistory));
+  renderHistory();
+}
+
+document.getElementById('historyFilter').addEventListener('change', renderHistory);
+
+document.getElementById('clearHistory').addEventListener('click', () => {
+  if(confirm('Clear all history?')){
+    eventHistory = [];
+    localStorage.removeItem('eventHistory');
+    renderHistory();
+  }
+});
+
+document.getElementById('clearTrends').addEventListener('click',()=>{
+  if(confirm('Clear all trend data?')){
+    trendData={soil:[],temp:[],hum:[],labels:[]};
+    localStorage.removeItem('trendData');
+    updateCharts();
+  }
+});
+
+// ============ MQTT ============
 const mqttHost="a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
 const mqttUser="Soil_System";
 const mqttPass="Soilsystem123";
@@ -606,81 +412,72 @@ function updateManualControls(){
 client.on("connect",()=>{
   console.log("MQTT Connected");
   updateConnectionStatus(true);
-  client.subscribe("soil_system/data",(err)=>{ if(err) console.error("Subscribe data error:",err); });
-  client.subscribe("soil_system/event",(err)=>{ if(err) console.error("Subscribe event error:",err); });
-  setTimeout(()=> client.publish("soil_system/get_data","1"),500);
+  
+  // Subscribe to topics
+  client.subscribe("soil_system/data", (err) => {
+    if(err) console.error("Subscribe data error:", err);
+    else console.log("Subscribed to soil_system/data");
+  });
+  
+  client.subscribe("soil_system/event", (err) => {
+    if(err) console.error("Subscribe event error:", err);
+    else console.log("Subscribed to soil_system/event");
+  });
+  
+  // Request initial data
+  setTimeout(() => {
+    client.publish("soil_system/get_data", "1");
+    console.log("Requested initial data");
+  }, 500);
 });
 
 client.on("disconnect",()=>updateConnectionStatus(false));
 client.on("error",()=>updateConnectionStatus(false));
 
-client.on("message", async (topic, message)=>{
-  const msg = message.toString();
-  // console.log("MQTT",topic,msg);
-  if(topic === "soil_system/data"){
+client.on("message",(topic,message)=>{
+  const msg=message.toString();
+  console.log(">>> MQTT Message received:", topic, msg);
+  
+  if(topic==="soil_system/data"){
     try{
-      const d = JSON.parse(msg);
-      document.getElementById('soilPercent').innerText = (typeof d.soilPercent==='number') ? d.soilPercent+' %' : d.soilPercent;
-      document.getElementById('soilRaw').innerText = d.soilRaw === undefined ? '--' : d.soilRaw;
-      document.getElementById('tempVal').innerText = (d.temp>-90 && typeof d.temp === 'number') ? d.temp.toFixed(1)+'°C' : '--°C';
-      document.getElementById('humVal').innerText = (d.hum>=0 && typeof d.hum === 'number') ? d.hum.toFixed(1)+'%' : '--%';
-
-      const pumpEl = document.getElementById('pumpState');
-      const isOn = d.pump === 1;
-      pumpEl.innerText = isOn ? 'ON' : 'OFF';
-      pumpEl.classList.toggle('on', isOn);
-
-      currentMode = d.mode || currentMode;
-      document.getElementById('modeSelect').value = currentMode;
+      const d=JSON.parse(msg);
+      document.getElementById('soilPercent').innerText=d.soilPercent+' %';
+      document.getElementById('soilRaw').innerText=d.soilRaw;
+      document.getElementById('tempVal').innerText=d.temp>-90?d.temp.toFixed(1)+'°C':'--°C';
+      document.getElementById('humVal').innerText=d.hum>=0?d.hum.toFixed(1)+'%':'--%';
+      
+      const pumpEl=document.getElementById('pumpState');
+      const isOn=d.pump===1;
+      pumpEl.innerText=isOn?'ON':'OFF';
+      pumpEl.classList.toggle('on',isOn);
+      
+      currentMode=d.mode;
+      document.getElementById('modeSelect').value=d.mode;
       updateManualControls();
-
-      // setpoint/hysteresis UI
-      if(!userEditingSetpoint) document.getElementById('setpoint').value = d.setpoint ?? document.getElementById('setpoint').value;
-      if(!userEditingHysteresis) document.getElementById('hysteresis').value = (d.hysteresis ?? document.getElementById('hysteresis').value);
-
-      const low = d.lowThreshold || ( (Number(d.setpoint) || 40) - (Number(d.hysteresis) || 5));
-      document.getElementById('thresholdInfo').innerText = `Pump ON < ${low}% | OFF ≥ ${d.setpoint ?? 40}%`;
-
-      // add trend point into DB (use current timestamp)
-      const nowTs = Date.now();
-      await trendManager.addPoint({ts: nowTs, soil: (typeof d.soilPercent==='number'? d.soilPercent: null), temp: (typeof d.temp==='number'? d.temp: null), hum: (typeof d.hum==='number'? d.hum: null)});
-      // refresh date selectors occasionally
-      if(Math.random() < 0.02) populateDateSelectors();
-      // if current trendDate is today, append last point to chart (live)
-      const selectedTrendDate = el('trendDate').value;
-      if(selectedTrendDate === toDateKey(nowTs)){
-        // keep sliding window behaviour: show last N points
-        const w = parseInt(el('trendWindow').value,10) || 120;
-        el('trendShift').value = 0; // auto-slide to latest
-        await renderTrends();
-      }
-    }catch(e){ console.error('Data parse error', e); }
+      
+      if(!userEditingSetpoint) document.getElementById('setpoint').value=d.setpoint;
+      if(!userEditingHysteresis) document.getElementById('hysteresis').value=d.hysteresis||5;
+      
+      const low=d.lowThreshold||(d.setpoint-(d.hysteresis||5));
+      document.getElementById('thresholdInfo').innerText=`Pump ON < ${low}% | OFF ≥ ${d.setpoint}%`;
+      
+      addTrendPoint(d.soilPercent,d.temp,d.hum);
+    }catch(e){console.error("Data parse error:", e);}
   }
-
-  if(topic === "soil_system/event"){
+  
+  if(topic==="soil_system/event"){
+    console.log(">>> EVENT RECEIVED:", msg);
     try{
-      const d = JSON.parse(msg);
-      // ensure timestamp: use provided ts or now
-      const ts = d.ts ? Number(d.ts) : Date.now();
-      const ev = { ts, type: d.type || 'event', action: d.action || '', trigger: d.trigger || 'auto', soil: d.soil };
-      await historyManager.addEvent(ev);
-      // re-populate selectors sometimes
-      if(Math.random() < 0.2) populateDateSelectors();
-      // if currently viewing this date, re-render
-      if(el('historyDate').value === toDateKey(ts)) renderHistory();
-    }catch(e){ console.error('Event parse error', e); }
+      const d=JSON.parse(msg);
+      console.log(">>> Event parsed:", d.type, d.action, d.trigger, d.soil);
+      addEvent(d.type, d.action, d.trigger, d.soil);
+    }catch(e){console.error("Event parse error:", e);}
   }
 });
 
-/* ========================
-   Input handlers (kept same)
-   ======================== */
-let userEditingSetpoint = false;
-let userEditingHysteresis = false;
-let currentMode = "AUTO";
-
-const setpointInput = el('setpoint');
-const hysteresisInput = el('hysteresis');
+// ============ INPUT HANDLERS ============
+const setpointInput=document.getElementById('setpoint');
+const hysteresisInput=document.getElementById('hysteresis');
 
 setpointInput.addEventListener('focus',()=>userEditingSetpoint=true);
 setpointInput.addEventListener('blur',()=>setTimeout(()=>userEditingSetpoint=false,500));
@@ -690,84 +487,34 @@ hysteresisInput.addEventListener('focus',()=>userEditingHysteresis=true);
 hysteresisInput.addEventListener('blur',()=>setTimeout(()=>userEditingHysteresis=false,500));
 hysteresisInput.addEventListener('input',()=>userEditingHysteresis=true);
 
-el('setBtn').addEventListener('click',()=>{
-  let sp = parseInt(setpointInput.value)||40;
-  let hy = parseInt(hysteresisInput.value)||5;
-  sp = Math.max(0,Math.min(100,sp));
-  hy = Math.max(1,Math.min(20,hy));
+document.getElementById('setBtn').addEventListener('click',()=>{
+  let sp=parseInt(setpointInput.value)||40;
+  let hy=parseInt(hysteresisInput.value)||5;
+  sp=Math.max(0,Math.min(100,sp));
+  hy=Math.max(1,Math.min(20,hy));
   userEditingSetpoint=false;
   userEditingHysteresis=false;
   client.publish("soil_system/setpoint",JSON.stringify({setpoint:sp}));
   client.publish("soil_system/hysteresis",JSON.stringify({hysteresis:hy}));
 });
 
-el('modeSelect').addEventListener('change',function(){
+document.getElementById('modeSelect').addEventListener('change',function(){
   currentMode=this.value;
   updateManualControls();
   client.publish("soil_system/setmode",JSON.stringify({mode:this.value}));
 });
 
-el('pumpOn').addEventListener('click',()=>{ if(currentMode==="MANUAL") client.publish("soil_system/manualpump",JSON.stringify({state:1})); });
-el('pumpOff').addEventListener('click',()=>{ if(currentMode==="MANUAL") client.publish("soil_system/manualpump",JSON.stringify({state:0})); });
-
-/* ========================
-   UI events for selectors / sliders
-   ======================== */
-el('historyFilter').addEventListener('change', renderHistory);
-el('historyDate').addEventListener('change', renderHistory);
-el('trendDate').addEventListener('change', async ()=>{
-  await updateTrendSliders();
-  renderTrends();
-});
-el('trendWindow').addEventListener('input', ()=>{
-  el('trendWindow').dataset.userChanged = '1';
-  renderTrends();
-});
-el('trendShift').addEventListener('input', renderTrends);
-
-el('clearHistory').addEventListener('click', async ()=>{
-  if(confirm('Clear all history?')){ await historyManager.clearAll(); populateDateSelectors(); renderHistory(); }
-});
-el('clearTrends').addEventListener('click', async ()=>{
-  if(confirm('Clear all trend data?')){ await trendManager.clearAll(); populateDateSelectors(); renderTrends(); }
+document.getElementById('pumpOn').addEventListener('click',()=>{
+  if(currentMode==="MANUAL") client.publish("soil_system/manualpump",JSON.stringify({state:1}));
 });
 
-/* ========================
-   Initialization
-   ======================== */
-async function init(){
-  try{
-    await pruneOldDays();
-    await populateDateSelectors();
-    // try rendering initial charts/history
-    renderHistory();
-    renderTrends();
-  }catch(e){
-    console.error('Init error', e);
-  }
-  // update clock text
-  updateClock();
-}
+document.getElementById('pumpOff').addEventListener('click',()=>{
+  if(currentMode==="MANUAL") client.publish("soil_system/manualpump",JSON.stringify({state:0}));
+});
 
-init();
-
-/* ========================
-   Expose a manual API for testing (console)
-   e.g. call addTestPoint()
-   ======================== */
-window._att = {
-  trendManager,
-  historyManager,
-  addTestPoint: async (soil,temp,hum,ts=Date.now())=>{
-    await trendManager.addPoint({ts,soil,temp,hum});
-    await populateDateSelectors();
-  },
-  addTestEvent: async (type,action,trigger,soil,ts=Date.now())=>{
-    await historyManager.addEvent({ts,type,action,trigger,soil});
-    await populateDateSelectors();
-  },
-  pruneOldDays
-};
+// ============ INIT ============
+renderHistory();
+updateCharts();
 </script>
 </body>
 </html>
