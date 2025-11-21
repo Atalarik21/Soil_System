@@ -219,7 +219,7 @@ header .right { text-align:right; color:var(--muted); font-size:14px; }
 let userEditingSetpoint = false;
 let userEditingHysteresis = false;
 let currentMode = "AUTO";
-let pumpHistory = JSON.parse(localStorage.getItem('pumpHistory') || '[]');
+let eventHistory = JSON.parse(localStorage.getItem('eventHistory') || '[]');
 let trendData = JSON.parse(localStorage.getItem('trendData') || '{"soil":[],"temp":[],"hum":[],"labels":[]}');
 const MAX_TREND_POINTS = 50;
 
@@ -303,36 +303,81 @@ function addTrendPoint(soil,temp,hum){
 }
 
 // ============ HISTORY ============
-function renderHistory(){
-  const container=document.getElementById('historyContainer');
-  if(pumpHistory.length===0){
-    container.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">No history yet</div>';
-    return;
-  }
-  container.innerHTML=pumpHistory.slice().reverse().map(h=>`
-    <div class="history-item">
-      <div>
-        <div class="history-event ${h.event.toLowerCase()}">${h.event==='ON'?'🟢 PUMP ON':'🔴 PUMP OFF'}</div>
-        <div class="history-soil">Soil: ${h.soil}%</div>
-      </div>
-      <div class="history-time">${h.time}</div>
-    </div>
-  `).join('');
+function getHistoryIcon(type, action) {
+  if(type === 'pump') return action === 'ON' ? '💧' : '🚫';
+  if(type === 'mode') return action === 'AUTO' ? '🤖' : '🖐️';
+  return '📝';
 }
 
-function addHistory(event,soil){
-  const now=new Date();
-  const time=now.toLocaleString();
-  pumpHistory.push({event,soil,time});
-  if(pumpHistory.length>100) pumpHistory.shift();
-  localStorage.setItem('pumpHistory',JSON.stringify(pumpHistory));
+function getHistoryText(type, action, trigger) {
+  if(type === 'pump') {
+    const triggerText = trigger === 'auto' ? '(Auto)' : '(Manual)';
+    return action === 'ON' ? `Pump ON ${triggerText}` : `Pump OFF ${triggerText}`;
+  }
+  if(type === 'mode') {
+    return action === 'AUTO' ? 'Mode → AUTO' : 'Mode → MANUAL';
+  }
+  return action;
+}
+
+function renderHistory(){
+  const container = document.getElementById('historyContainer');
+  const filter = document.getElementById('historyFilter').value;
+  
+  let filtered = eventHistory;
+  if(filter === 'pump') filtered = eventHistory.filter(h => h.type === 'pump');
+  else if(filter === 'mode') filtered = eventHistory.filter(h => h.type === 'mode');
+  else if(filter === 'auto') filtered = eventHistory.filter(h => h.trigger === 'auto');
+  else if(filter === 'manual') filtered = eventHistory.filter(h => h.trigger === 'manual');
+  
+  if(filtered.length === 0){
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">No history yet</div>';
+    return;
+  }
+  
+  container.innerHTML = filtered.slice().reverse().map(h => {
+    const icon = getHistoryIcon(h.type, h.action);
+    const text = getHistoryText(h.type, h.action, h.trigger);
+    const eventClass = h.action.toLowerCase();
+    const badgeClass = h.trigger || 'auto';
+    const badgeText = h.trigger === 'manual' ? 'MANUAL' : 'AUTO';
+    
+    return `
+      <div class="history-item">
+        <div class="history-icon">${icon}</div>
+        <div class="history-main">
+          <div class="history-event ${eventClass}">${text}</div>
+          <div class="history-details">
+            <span class="history-badge ${badgeClass}">${badgeText}</span>
+            ${h.type === 'pump' ? ` • Soil: ${h.soil}%` : ''}
+          </div>
+        </div>
+        <div class="history-right">
+          <div class="history-time">${h.time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addEvent(type, action, trigger, soil){
+  console.log(">>> addEvent called:", type, action, trigger, soil);
+  const now = new Date();
+  const time = now.toLocaleString();
+  const newEvent = { type, action, trigger, soil, time };
+  eventHistory.push(newEvent);
+  console.log(">>> Event added to history. Total events:", eventHistory.length);
+  if(eventHistory.length > 100) eventHistory.shift();
+  localStorage.setItem('eventHistory', JSON.stringify(eventHistory));
   renderHistory();
 }
 
-document.getElementById('clearHistory').addEventListener('click',()=>{
-  if(confirm('Clear all pump history?')){
-    pumpHistory=[];
-    localStorage.removeItem('pumpHistory');
+document.getElementById('historyFilter').addEventListener('change', renderHistory);
+
+document.getElementById('clearHistory').addEventListener('click', () => {
+  if(confirm('Clear all history?')){
+    eventHistory = [];
+    localStorage.removeItem('eventHistory');
     renderHistory();
   }
 });
@@ -367,18 +412,31 @@ function updateManualControls(){
 client.on("connect",()=>{
   console.log("MQTT Connected");
   updateConnectionStatus(true);
-  client.subscribe("soil_system/data");
-  client.subscribe("soil_system/pump_event");
-  client.publish("soil_system/get_data","1");
+  
+  // Subscribe to topics
+  client.subscribe("soil_system/data", (err) => {
+    if(err) console.error("Subscribe data error:", err);
+    else console.log("Subscribed to soil_system/data");
+  });
+  
+  client.subscribe("soil_system/event", (err) => {
+    if(err) console.error("Subscribe event error:", err);
+    else console.log("Subscribed to soil_system/event");
+  });
+  
+  // Request initial data
+  setTimeout(() => {
+    client.publish("soil_system/get_data", "1");
+    console.log("Requested initial data");
+  }, 500);
 });
 
 client.on("disconnect",()=>updateConnectionStatus(false));
 client.on("error",()=>updateConnectionStatus(false));
 
-let lastPumpState=null;
-
 client.on("message",(topic,message)=>{
   const msg=message.toString();
+  console.log(">>> MQTT Message received:", topic, msg);
   
   if(topic==="soil_system/data"){
     try{
@@ -393,12 +451,6 @@ client.on("message",(topic,message)=>{
       pumpEl.innerText=isOn?'ON':'OFF';
       pumpEl.classList.toggle('on',isOn);
       
-      // Detect pump state change for history
-      if(lastPumpState!==null && lastPumpState!==isOn){
-        addHistory(isOn?'ON':'OFF',d.soilPercent);
-      }
-      lastPumpState=isOn;
-      
       currentMode=d.mode;
       document.getElementById('modeSelect').value=d.mode;
       updateManualControls();
@@ -406,20 +458,20 @@ client.on("message",(topic,message)=>{
       if(!userEditingSetpoint) document.getElementById('setpoint').value=d.setpoint;
       if(!userEditingHysteresis) document.getElementById('hysteresis').value=d.hysteresis||5;
       
-      // Update threshold info
       const low=d.lowThreshold||(d.setpoint-(d.hysteresis||5));
       document.getElementById('thresholdInfo').innerText=`Pump ON < ${low}% | OFF ≥ ${d.setpoint}%`;
       
-      // Add trend point
       addTrendPoint(d.soilPercent,d.temp,d.hum);
-    }catch(e){console.error(e);}
+    }catch(e){console.error("Data parse error:", e);}
   }
   
-  if(topic==="soil_system/pump_event"){
+  if(topic==="soil_system/event"){
+    console.log(">>> EVENT RECEIVED:", msg);
     try{
       const d=JSON.parse(msg);
-      addHistory(d.event,d.soil);
-    }catch(e){}
+      console.log(">>> Event parsed:", d.type, d.action, d.trigger, d.soil);
+      addEvent(d.type, d.action, d.trigger, d.soil);
+    }catch(e){console.error("Event parse error:", e);}
   }
 });
 
