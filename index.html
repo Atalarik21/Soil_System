@@ -252,7 +252,7 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 <script>
 // ============ CONSTANTS ============
 const MAX_DAYS = 14; // 2 weeks retention
-const TREND_INTERVAL = 30000; // Save trend every 30 seconds
+const TREND_INTERVAL = 1000; // Save trend every 1 second
 const DATA_VERSION = 2;
 
 // ============ STATE ============
@@ -518,8 +518,8 @@ function addTrendPoint(soil, temp, hum) {
   dayData.temp.push(temp > -90 ? temp : null);
   dayData.hum.push(hum >= 0 ? hum : null);
   
-  // Limit per day (every 30s = 2880 points/day max, keep last 1000)
-  if (dayData.time.length > 1000) {
+  // Limit per day (every 1s = 86400 points/day max, keep last 3600 = 1 hour detail)
+  if (dayData.time.length > 3600) {
     dayData.time.shift();
     dayData.soil.shift();
     dayData.temp.shift();
