@@ -8,15 +8,12 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 <style>
-/* (Deklarasi variabel :root dan style universal lainnya tidak saya ubah) */
+/* (Style dari jawaban sebelumnya) */
 :root{--bg:#070617;--card:#0f1220;--accent:#00f1ff;--accent2:#9b4dff;--muted:#9aa3b2;--success:#00ff88;--warning:#ffaa00;--danger:#ff6b6b;--glow:0 8px 30px rgba(155,77,255,0.12)}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;padding:0;font-family:'Inter',Arial,sans-serif;background:radial-gradient(1200px 600px at 10% 10%,rgba(155,77,255,0.06),transparent),linear-gradient(180deg,#060613 0%,#0b0f1a 100%);color:#e6eef8;overflow-x:hidden}
-
-/* FONT ASLI DI SINI (Orbitron) */
 header h1{font-family:'Orbitron',sans-serif;letter-spacing:2px;color:var(--accent2);margin:0;font-size:28px}
 .big-value{font-family:'Orbitron',sans-serif;color:var(--accent);font-size:84px;text-shadow:0 6px 30px rgba(0,241,255,0.08);line-height:1}
-
 .wrap{max-width:1200px;margin:0 auto;padding:18px}
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:12px}
 header .right{text-align:right;color:var(--muted);font-size:14px}
@@ -61,25 +58,12 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 .manual-controls{display:none;margin-left:auto;gap:8px}
 .manual-controls.show{display:flex}
 .info-text{font-size:11px;color:var(--muted);text-align:center;padding-top:8px;line-height:1.6}
-
-/* Date Navigation */
-.date-nav{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-bottom:16px;
-  flex-wrap:wrap;
-  padding:12px;
-  background:rgba(255,255,255,0.02);
-  border-radius:10px
-}
+.date-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px}
 .date-nav-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--accent);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:18px}
 .date-nav-btn:hover{background:rgba(255,255,255,0.1)}
 .date-display{flex:1;text-align:center;font-weight:600;color:var(--accent);font-size:14px}
 .time-slider{width:100%;margin:10px 0}
 .time-range{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
-
-/* History (Tidak ada perubahan) */
 .history-container{max-height:500px;overflow-y:auto}
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;margin-bottom:8px;gap:10px}
 .history-icon{font-size:20px;min-width:30px}
@@ -98,117 +82,56 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 .history-time{font-size:11px;color:var(--muted)}
 .history-count{font-size:12px;color:var(--muted);margin-bottom:10px}
 .no-data{text-align:center;color:var(--muted);padding:40px}
-
-/* Charts (Tidak ada perubahan) */
 .chart-container{background:rgba(255,255,255,0.02);border-radius:12px;padding:16px;margin-bottom:16px}
 .chart-title{font-size:14px;color:var(--muted);margin-bottom:12px;font-weight:600}
 .chart-wrapper{height:200px;position:relative}
-
-/* Storage info (Tidak ada perubahan) */
 .storage-info{font-size:11px;color:var(--muted);text-align:center;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px;margin-top:12px}
 
 /* Responsive Styles */
 @media(max-width:900px){
-  /* Perubahan untuk tablet atau perangkat sedang */
   .grid{grid-template-columns:1fr}
   .big-value{font-size:64px}
   header h1{font-size:22px}
 }
-
 @media(max-width:600px){
-  /* Perbaikan KHUSUS untuk Mobile (Mode Potret) */
   .wrap{padding:12px}
-  
-  /* 1. Perbaikan Tabs (History dan Trends harus berdampingan) */
-  .tabs{
-    flex-wrap: nowrap; /* Pastikan tab tetap dalam satu baris */
-    overflow-x: auto;  /* Jika terlalu banyak, bisa digeser */
-    padding-bottom: 5px; /* Tambahkan sedikit ruang */
-  }
-  .tab{
-    flex-shrink: 0; /* Hindari pengecilan paksa */
-    padding: 8px 16px; /* Lebih kompak */
-  }
-
-  /* 2. Stat Besar - Ukuran lebih kecil */
+  .tabs{flex-wrap: nowrap;overflow-x: auto;padding-bottom: 5px;}
+  .tab{flex-shrink: 0;padding: 8px 16px;}
   .big-value{font-size:48px}
   .big-stat{min-height:auto;padding:16px}
   .card{padding:14px}
-  
-  /* 3. Mini Stats - Horizontal dan rata */
-  .small-row{
-    flex-direction: row; 
-    justify-content: space-around;
-    gap: 8px;
-    width: 100%;
-  }
-  .stat-mini{
-    width: auto; 
-    min-width: 90px;
-    padding: 10px 8px;
-  }
+  .small-row{flex-direction: row;justify-content: space-around;gap: 8px;width: 100%;}
+  .stat-mini{width: auto;min-width: 90px;padding: 10px 8px;}
   .stat-mini h4{font-size:12px}
   .stat-mini p{font-size:14px}
-  
-  /* 4. Kontrol Perangkat - Tata letak tombol lebih efisien */
-  .controls{
-    flex-direction: row; 
-    align-items: flex-end; 
-    justify-content: space-between;
-    flex-wrap: wrap;
-  }
-  .control-group{
-    width: 30%; 
-    max-width: 80px;
-  }
-  .control-input{
-    width: 100%; 
-  }
-  .btn{
-    width: auto; 
-    margin-left: auto; 
-  }
-  .manual-controls{
-    margin-top: 10px;
-    margin-left: 0; 
-    width: 100%; 
-    flex-direction: row; 
-    justify-content: space-between;
-  }
-  .manual-controls button{
-    flex: 1; 
-    margin-right: 5px; /* Jarak antar tombol */
-  }
-  .manual-controls button:last-child{
-    margin-right: 0;
-  }
-
-  /* 5. Perbaikan Navigasi Tanggal (Date Navigation) */
+  .controls{flex-direction: row;align-items: flex-end;justify-content: space-between;flex-wrap: wrap;}
+  .control-group{width: 30%;max-width: 80px;}
+  .control-input{width: 100%;}
+  .btn{width: auto;margin-left: auto;}
+  .manual-controls{margin-top: 10px;margin-left: 0;width: 100%;flex-direction: row;justify-content: space-between;}
+  .manual-controls button{flex: 1;margin-right: 5px;}
+  .manual-controls button:last-child{margin-right: 0;}
   .date-nav{
-    flex-direction: row; /* Kembali ke baris */
+    flex-direction: row; 
     align-items: center;
-    justify-content: space-between; /* Untuk meratakan elemen */
-    flex-wrap: nowrap; /* Pastikan semua elemen di satu baris */
+    justify-content: space-between; 
+    flex-wrap: nowrap; 
     padding: 8px;
   }
   .date-nav-btn, .date-input, .date-nav #histToday, .date-nav #trendToday {
-    width: auto; /* Hapus paksaan lebar 100% */
-    flex-shrink: 0; /* Cegah pengecilan */
+    width: auto; 
+    flex-shrink: 0; 
   }
-  
-  /* Atur input tanggal agar mengambil sisa ruang */
   .date-input{
-    flex-grow: 1; /* Agar input tanggal melebar */
-    margin: 0 5px; /* Jarak kecil dari tombol kiri/kanan */
+    flex-grow: 1; 
+    margin: 0 5px; 
     text-align: center;
   }
-  
-  /* Atur agar tombol Prev dan Next mengapit input tanggal */
   .date-nav #histPrevDay, .date-nav #trendPrevDay { order: 1; }
   .date-nav input[type="date"] { order: 2; }
   .date-nav #histNextDay, .date-nav #trendNextDay { order: 3; }
   .date-nav #histToday, .date-nav #trendToday { 
-    order: 4; /* Tombol Today berada di sisi paling kanan */
+    order: 4;
     margin-left: 5px;
   }
 }
@@ -318,6 +241,7 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
     <option value="all">All Events</option>
     <option value="pump">Pump Only</option>
     <option value="mode">Mode Only</option>
+    <option value="system">System Only</option>
     <option value="auto">Auto Trigger</option>
     <option value="manual">Manual Trigger</option>
   </select>
@@ -367,25 +291,32 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
-// (Kode JavaScript tetap sama)
 // ============ CONSTANTS ============
-const MAX_DAYS = 14; // 2 weeks retention
-const TREND_INTERVAL = 1000; // Save trend every 1 second
+const MAX_DAYS = 14; 
+const TREND_INTERVAL = 2000; // Match Arduino publish interval
 const DATA_VERSION = 2;
+
+// ============ MQTT CONFIG ============
+const mqttHost = "a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
+const mqttUser = "Soil_System";
+const mqttPass = "Soilsystem123";
+const clientId = "web_" + Math.random().toString(16).substr(2, 8);
 
 // ============ STATE ============
 let userEditingSetpoint = false;
 let userEditingHysteresis = false;
 let currentMode = "AUTO";
-let lastTrendSave = 0;
 
-// Data storage with date keys
-let eventHistory = {}; // { "2024-01-15": [{...}, {...}], ... }
-let trendData = {};    // { "2024-01-15": { soil:[], temp:[], hum:[], time:[] }, ... }
+let eventHistory = {}; 
+let trendData = {};    
 
-// Current view dates
 let historyViewDate = new Date();
 let trendViewDate = new Date();
+
+// ============ MQTT CLIENT ============
+const client = mqtt.connect(`wss://${mqttHost}:8884/mqtt`, {
+  clientId, username: mqttUser, password: mqttPass, reconnectPeriod: 3000
+});
 
 // ============ UTILITY FUNCTIONS ============
 function formatDate(d) {
@@ -394,10 +325,6 @@ function formatDate(d) {
 
 function formatTime(d) {
   return d.toTimeString().split(' ')[0]; // "HH:MM:SS"
-}
-
-function formatDateTime(d) {
-  return d.toLocaleString();
 }
 
 function pad(n) { return n < 10 ? '0' + n : n; }
@@ -419,7 +346,6 @@ function loadData() {
     if (savedEvents) eventHistory = JSON.parse(savedEvents);
     if (savedTrends) trendData = JSON.parse(savedTrends);
     
-    // Clean old data (older than MAX_DAYS)
     cleanOldData();
   } catch(e) {
     console.error("Load data error:", e);
@@ -433,8 +359,7 @@ function saveData() {
     localStorage.setItem('eventHistory_v' + DATA_VERSION, JSON.stringify(eventHistory));
     localStorage.setItem('trendData_v' + DATA_VERSION, JSON.stringify(trendData));
   } catch(e) {
-    console.error("Save data error:", e);
-    // If storage full, remove oldest day
+    console.error("Save data error, removing oldest day:", e);
     removeOldestDay();
     saveData();
   }
@@ -445,12 +370,10 @@ function cleanOldData() {
   cutoffDate.setDate(cutoffDate.getDate() - MAX_DAYS);
   const cutoffKey = formatDate(cutoffDate);
   
-  // Clean events
   Object.keys(eventHistory).forEach(key => {
     if (key < cutoffKey) delete eventHistory[key];
   });
   
-  // Clean trends
   Object.keys(trendData).forEach(key => {
     if (key < cutoffKey) delete trendData[key];
   });
@@ -554,7 +477,7 @@ document.getElementById('trendToday').addEventListener('click', () => {
 document.getElementById('historyDate').value = formatDate(new Date());
 document.getElementById('trendDate').value = formatDate(new Date());
 
-// ============ CHARTS ============
+// ============ CHARTS (Tidak Berubah) ============
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -610,7 +533,6 @@ function updateCharts() {
   humChart.data.datasets[0].data = dayData.hum || [];
   humChart.update('none');
   
-  // Update storage info
   const stats = getStorageStats();
   document.getElementById('trendStorageInfo').innerText = 
     `Storage: ${stats.totalTrends} data points across ${stats.trendDays} days (max ${MAX_DAYS} days)`;
@@ -619,7 +541,6 @@ function updateCharts() {
 function addTrendPoint(soil, temp, hum) {
   const now = Date.now();
   
-  // Only save every TREND_INTERVAL ms
   if (now - lastTrendSave < TREND_INTERVAL) return;
   lastTrendSave = now;
   
@@ -633,10 +554,11 @@ function addTrendPoint(soil, temp, hum) {
   const dayData = trendData[dateKey];
   dayData.time.push(timeLabel);
   dayData.soil.push(soil);
-  dayData.temp.push(temp > -90 ? temp : null);
+  // DHT error values: -100 for temp, -1 for hum (convert to null for chart)
+  dayData.temp.push(temp > -90 ? temp : null); 
   dayData.hum.push(hum >= 0 ? hum : null);
   
-  // Limit per day (every 1s = 86400 points/day max, keep last 3600 = 1 hour detail)
+  // Keep last 3600 points (1 hour detail if 1s interval)
   if (dayData.time.length > 3600) {
     dayData.time.shift();
     dayData.soil.shift();
@@ -646,16 +568,21 @@ function addTrendPoint(soil, temp, hum) {
   
   saveData();
   
-  // Update chart if viewing today
   if (formatDate(trendViewDate) === dateKey) {
     updateCharts();
   }
 }
 
-// ============ HISTORY ============
+// ============ HISTORY (DIPERBARUI untuk System Events) ============
 function getHistoryIcon(type, action) {
   if (type === 'pump') return action === 'ON' ? '💧' : '🚫';
   if (type === 'mode') return action === 'AUTO' ? '🤖' : '🖐️';
+  if (type === 'system') {
+      if (action === 'BOOT') return '🚀';
+      if (action === 'MQTT_UP') return '🔗';
+      if (action === 'MQTT_FAIL' || action === 'WIFI_DOWN') return '⚠️';
+      return '📝'; 
+  }
   return '📝';
 }
 
@@ -667,6 +594,13 @@ function getHistoryText(type, action, trigger) {
   if (type === 'mode') {
     return action === 'AUTO' ? 'Mode → AUTO' : 'Mode → MANUAL';
   }
+  if (type === 'system') {
+      if (action === 'BOOT') return 'System Restarted/Booted';
+      if (action === 'MQTT_UP') return 'MQTT Connection Restored';
+      if (action === 'MQTT_FAIL') return 'MQTT Connection Failure';
+      if (action === 'WIFI_DOWN') return 'WiFi Disconnected';
+      return `System Event: ${action}`;
+  }
   return action;
 }
 
@@ -677,10 +611,10 @@ function renderHistory() {
   
   let dayEvents = eventHistory[dateKey] || [];
   
-  // Apply filter
   let filtered = dayEvents;
   if (filter === 'pump') filtered = dayEvents.filter(h => h.type === 'pump');
   else if (filter === 'mode') filtered = dayEvents.filter(h => h.type === 'mode');
+  else if (filter === 'system') filtered = dayEvents.filter(h => h.type === 'system');
   else if (filter === 'auto') filtered = dayEvents.filter(h => h.trigger === 'auto');
   else if (filter === 'manual') filtered = dayEvents.filter(h => h.trigger === 'manual');
   
@@ -695,10 +629,13 @@ function renderHistory() {
   container.innerHTML = filtered.slice().reverse().map(h => {
     const icon = getHistoryIcon(h.type, h.action);
     const text = getHistoryText(h.type, h.action, h.trigger);
-    const eventClass = h.action.toLowerCase();
+    const eventClass = (h.action || '').toLowerCase().replace(/[^a-z0-9]/g, ''); // Ensure safe class name
     const badgeClass = h.trigger || 'auto';
     const badgeText = h.trigger === 'manual' ? 'MANUAL' : h.trigger === 'system' ? 'SYSTEM' : 'AUTO';
     
+    // Logic untuk menampilkan soil hanya jika event tervalidasi sensor (pump/mode change)
+    const showSoil = h.type === 'pump' || h.type === 'mode';
+
     return `
       <div class="history-item">
         <div class="history-icon">${icon}</div>
@@ -706,7 +643,7 @@ function renderHistory() {
           <div class="history-event ${eventClass}">${text}</div>
           <div class="history-details">
             <span class="history-badge ${badgeClass}">${badgeText}</span>
-            ${h.type === 'pump' ? ` • Soil: ${h.soil}%` : ''}
+            ${showSoil ? ` • Soil: ${h.soil}%` : ''}
           </div>
         </div>
         <div class="history-right">
@@ -726,8 +663,6 @@ function updateHistoryStorageInfo() {
 }
 
 function addEvent(type, action, trigger, soil) {
-  console.log(">>> addEvent:", type, action, trigger, soil);
-  
   const now = new Date();
   const dateKey = getDateKey(now);
   const time = formatTime(now);
@@ -745,7 +680,6 @@ function addEvent(type, action, trigger, soil) {
   
   saveData();
   
-  // Update if viewing today
   if (formatDate(historyViewDate) === dateKey) {
     renderHistory();
   }
@@ -769,16 +703,7 @@ document.getElementById('clearTrends').addEventListener('click', () => {
   }
 });
 
-// ============ MQTT ============
-const mqttHost = "a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
-const mqttUser = "Soil_System";
-const mqttPass = "Soilsystem123";
-const clientId = "web_" + Math.random().toString(16).substr(2, 8);
-
-const client = mqtt.connect(`wss://${mqttHost}:8884/mqtt`, {
-  clientId, username: mqttUser, password: mqttPass, reconnectPeriod: 3000
-});
-
+// ============ MQTT HANDLERS ============
 function updateConnectionStatus(connected) {
   document.getElementById('statusDot').classList.toggle('online', connected);
   document.getElementById('statusText').innerText = connected ? 'Connected to MQTT' : 'Disconnected - Reconnecting...';
@@ -794,17 +719,15 @@ client.on("connect", () => {
   
   client.subscribe("soil_system/data", (err) => {
     if (err) console.error("Subscribe data error:", err);
-    else console.log("Subscribed to soil_system/data");
   });
   
   client.subscribe("soil_system/event", (err) => {
     if (err) console.error("Subscribe event error:", err);
-    else console.log("Subscribed to soil_system/event");
   });
   
   setTimeout(() => {
     client.publish("soil_system/get_data", "1");
-  }, 500);
+  }, 1000); // Minta data saat koneksi baru
 });
 
 client.on("disconnect", () => updateConnectionStatus(false));
@@ -818,8 +741,10 @@ client.on("message", (topic, message) => {
       const d = JSON.parse(msg);
       document.getElementById('soilPercent').innerText = d.soilPercent + ' %';
       document.getElementById('soilRaw').innerText = d.soilRaw;
-      document.getElementById('tempVal').innerText = d.temp > -90 ? d.temp.toFixed(1) + '°C' : '--°C';
-      document.getElementById('humVal').innerText = d.hum >= 0 ? d.hum.toFixed(1) + '%' : '--%';
+      
+      // Handle sensor error values (-100 for temp, -1 for hum)
+      document.getElementById('tempVal').innerText = d.temp > -90 ? d.temp.toFixed(1) + '°C' : 'N/A';
+      document.getElementById('humVal').innerText = d.hum >= 0 ? d.hum.toFixed(1) + '%' : 'N/A';
       
       const pumpEl = document.getElementById('pumpState');
       const isOn = d.pump === 1;
@@ -841,7 +766,6 @@ client.on("message", (topic, message) => {
   }
   
   if (topic === "soil_system/event") {
-    console.log(">>> EVENT RECEIVED:", msg);
     try {
       const d = JSON.parse(msg);
       addEvent(d.type, d.action, d.trigger, d.soil);
@@ -887,6 +811,7 @@ document.getElementById('pumpOff').addEventListener('click', () => {
 });
 
 // ============ INIT ============
+let lastTrendSave = 0;
 loadData();
 cleanOldData();
 renderHistory();
