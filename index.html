@@ -4,10 +4,11 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>ATTAMATION - Soil Monitor</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght+500;700&family=Inter:wght+300;400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 <style>
+/* (Deklarasi variabel :root dan style universal lainnya tidak saya ubah) */
 :root{--bg:#070617;--card:#0f1220;--accent:#00f1ff;--accent2:#9b4dff;--muted:#9aa3b2;--success:#00ff88;--warning:#ffaa00;--danger:#ff6b6b;--glow:0 8px 30px rgba(155,77,255,0.12)}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;padding:0;font-family:'Inter',Arial,sans-serif;background:radial-gradient(1200px 600px at 10% 10%,rgba(155,77,255,0.06),transparent),linear-gradient(180deg,#060613 0%,#0b0f1a 100%);color:#e6eef8;overflow-x:hidden}
@@ -57,14 +58,14 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 .manual-controls{display:none;margin-left:auto;gap:8px}
 .manual-controls.show{display:flex}
 .info-text{font-size:11px;color:var(--muted);text-align:center;padding-top:8px;line-height:1.6}
-/* Date Navigation */
+/* Date Navigation (Tidak diubah) */
 .date-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;padding:12px;background:rgba(255,255,255,0.02);border-radius:10px}
 .date-nav-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--accent);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:18px}
 .date-nav-btn:hover{background:rgba(255,255,255,0.1)}
 .date-display{flex:1;text-align:center;font-weight:600;color:var(--accent);font-size:14px}
 .time-slider{width:100%;margin:10px 0}
 .time-range{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
-/* History */
+/* History (Tidak diubah) */
 .history-container{max-height:500px;overflow-y:auto}
 .history-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;margin-bottom:8px;gap:10px}
 .history-icon{font-size:20px;min-width:30px}
@@ -83,15 +84,82 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 .history-time{font-size:11px;color:var(--muted)}
 .history-count{font-size:12px;color:var(--muted);margin-bottom:10px}
 .no-data{text-align:center;color:var(--muted);padding:40px}
-/* Charts */
+/* Charts (Tidak diubah) */
 .chart-container{background:rgba(255,255,255,0.02);border-radius:12px;padding:16px;margin-bottom:16px}
 .chart-title{font-size:14px;color:var(--muted);margin-bottom:12px;font-weight:600}
 .chart-wrapper{height:200px;position:relative}
-/* Storage info */
+/* Storage info (Tidak diubah) */
 .storage-info{font-size:11px;color:var(--muted);text-align:center;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px;margin-top:12px}
-/* Responsive */
-@media(max-width:900px){.grid{grid-template-columns:1fr}.big-value{font-size:64px}header h1{font-size:22px}}
-@media(max-width:600px){.wrap{padding:12px}.big-value{font-size:48px}.big-stat{min-height:auto;padding:16px}.card{padding:14px}.small-row{flex-direction:column;width:100%}.stat-mini{width:100%}.controls{flex-direction:column;align-items:stretch}.control-input{width:100%}.btn{width:100%}.manual-controls{margin-left:0;width:100%;flex-direction:column}.date-nav{flex-direction:column}.date-nav-btn{width:100%}}
+
+/* Responsive Styles */
+@media(max-width:900px){
+  /* Perubahan untuk tablet atau perangkat sedang */
+  .grid{grid-template-columns:1fr} /* Satu kolom untuk grid di layar < 900px */
+  .big-value{font-size:64px}
+  header h1{font-size:22px}
+}
+
+@media(max-width:600px){
+  /* Perubahan KHUSUS untuk Mobile (Mode Potret) */
+  .wrap{padding:12px}
+  
+  /* 1. Stat Besar - Ukuran lebih kecil */
+  .big-value{font-size:48px}
+  .big-stat{min-height:auto;padding:16px}
+  .card{padding:14px}
+  
+  /* 2. Mini Stats - Tampilkan Horizontal, bukan Kolom */
+  .small-row{
+    /* Ubah kembali menjadi baris (row) */
+    flex-direction: row; 
+    justify-content: space-around; /* Ratakan secara merata */
+    gap: 8px; /* Jarak antar item lebih kecil */
+    width: 100%;
+  }
+  .stat-mini{
+    /* Hapus paksaan lebar 100% dan biarkan lebar sesuai isi (min-width sudah ada) */
+    width: auto; 
+    min-width: 90px; /* Sedikit lebih kecil agar muat 3 item */
+    padding: 10px 8px;
+  }
+  .stat-mini h4{font-size:12px}
+  .stat-mini p{font-size:14px}
+  
+  /* 3. Kontrol Perangkat - Tata letak tombol lebih efisien */
+  .controls{
+    flex-direction: row; /* Ubah kembali menjadi baris (horizontal) */
+    align-items: flex-end; /* Ratakan di bagian bawah */
+    justify-content: space-between; /* Distribusikan ruang */
+    flex-wrap: wrap;
+  }
+  .control-group{
+    /* Tetapkan lebar agar input dan label tetap vertikal */
+    width: 30%; /* Atau gunakan persentase yang sesuai */
+    max-width: 80px;
+  }
+  .control-input{
+    width: 100%; /* Lebar penuh di dalam control-group */
+  }
+  .btn{
+    width: auto; /* Hapus lebar 100% pada tombol SET */
+    margin-left: auto; /* Dorong ke kanan jika ada ruang */
+  }
+  /* Tombol ON/OFF Manual - Tetap berdampingan */
+  .manual-controls{
+    margin-top: 10px;
+    margin-left: 0; 
+    width: 100%; /* Ambil lebar penuh untuk baris baru */
+    flex-direction: row; /* Tampilkan berdampingan */
+    justify-content: space-between;
+  }
+  .manual-controls button{
+    flex: 1; /* Ambil ruang yang sama */
+  }
+  
+  /* 4. Perbaikan Tata Letak Lainnya */
+  .date-nav{flex-direction:column}
+  .date-nav-btn{width:100%}
+}
 </style>
 </head>
 <body>
@@ -115,7 +183,6 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
   <div class="tab" data-tab="trends">📈 Trends</div>
 </div>
 
-<!-- DASHBOARD TAB -->
 <div class="tab-content active" id="tab-dashboard">
 <div class="grid">
   <div class="card big-stat">
@@ -181,7 +248,6 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 </div>
 </div>
 
-<!-- HISTORY TAB -->
 <div class="tab-content" id="tab-history">
 <div class="card">
   <div class="control-header">
@@ -213,7 +279,6 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 </div>
 </div>
 
-<!-- TRENDS TAB -->
 <div class="tab-content" id="tab-trends">
 <div class="card">
   <div class="control-header">
@@ -250,6 +315,7 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
+// (Seluruh kode JavaScript tidak perlu diubah)
 // ============ CONSTANTS ============
 const MAX_DAYS = 14; // 2 weeks retention
 const TREND_INTERVAL = 1000; // Save trend every 1 second
